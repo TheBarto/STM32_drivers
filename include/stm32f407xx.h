@@ -33,17 +33,7 @@
 
 /* Para cada elemento que cuelga de los perifericos, anotamos sus direcciones base. */
 /* AHB1 - GPIOs */
-#define GPIOAB_ADDR   (uint32_t) 0x40020000
-#define GPIOBB_ADDR   (uint32_t) 0x40020400
-#define GPIOCB_ADDR   (uint32_t) 0x40020800
-#define GPIODB_ADDR   (uint32_t) 0x40020C00
-#define GPIOEB_ADDR   (uint32_t) 0x40021000
-#define GPIOFB_ADDR   (uint32_t) 0x40021400
-#define GPIOGB_ADDR   (uint32_t) 0x40021800
-#define GPIOHB_ADDR   (uint32_t) 0x40021C00
-#define GPIOIB_ADDR   (uint32_t) 0x40022000
-#define GPIOJB_ADDR   (uint32_t) 0x40022400
-#define GPIOKB_ADDR   (uint32_t) 0x40022800
+
 #define RCCB_ADDR     (uint32_t) 0x40023800
 /* APB1 -I2Cx, SPIx, USARTx, UARTx */
 #define I2C1B_ADDR    (uint32_t) 0x40005400
@@ -63,29 +53,6 @@
 #define EXTIB_ADDR    (uint32_t) 0x40013C00
 #define SYSCFGB_ADDR  (uint32_t) 0x40013800
 
-/* GPIO Registers Base Address */
-#define GPIO_PORT_MODE_REG_BADDR                (uint32_t) 0x00000000
-#define GPIO_PORT_OUTPUT_TYPE_REG_B_ADDR        (uint32_t) 0x00000004
-#define GPIO_PORT_OUTPUT_SPEED_REG_B_ADDR       (uint32_t) 0x00000008
-#define GPIO_PORT_PULL_UP_PULL_DOWN_REG_B_ADDR  (uint32_t) 0x0000000C
-#define GPIO_PORT_INPUT_DATA_REG_B_ADDR         (uint32_t) 0x00000010
-#define GPIO_PORT_OUTPUT_DATA_REG_B_ADDR        (uint32_t) 0x00000014
-#define GPIO_PORT_BIT_SET_GET_REG_B_ADDR        (uint32_t) 0x00000018
-#define GPIO_PORT_CONFIG_LOCK_REG_B_ADDR        (uint32_t) 0x0000001C
-#define GPIO_PORT_ALTERNATE_LOW_REG_B_ADDR      (uint32_t) 0x00000020
-#define GPIO_PORT_ALTERNATE_HIGH_REG_B_ADDR     (uint32_t) 0x00000020
-
-/* Serial Peripheral Interface registers base address (SPI) */
-#define SPI_CONTROL_REG1_B_ADDR         (uint32_t) 0x00000000
-#define SPI_CONTROL_REG2_B_ADDR         (uint32_t) 0x00000004
-#define SPI_STATUS_REG_B_ADDR           (uint32_t) 0x00000008
-#define SPI_DATA_REG_B_ADDR             (uint32_t) 0x0000000C
-#define SPI_CRC_POLYNOMIAL_REG_B_ADDR   (uint32_t) 0x00000010
-#define SPI_RX_CRC_REG_B_ADDR           (uint32_t) 0x00000014
-#define SPI_TX_CRC_REG_B_ADDR           (uint32_t) 0x00000018
-#define SPI_CONFIG_REG_B_ADDR           (uint32_t) 0x0000001C
-#define SPI_PRESCALAR_REG_B_ADDR        (uint32_t) 0x00000020
-
 /* Para acceder a todos los registros de un un periférico, en vez de definir todas las direcciones para los diferentes periféricos, podemos generar una estructura que contenga varios elementos/variables (que hagan referencia a los registros del periférico). Luego simplemente cogeremos esa estructura como un puntero, y le pondremos la dirección base del periférico. De esta manera podremos acceder facilmente a los periféricos sin necesidad de estar generando todas las direcciones una a una. 
 
 Es muy importante que las variables que empleemos TENGAN EL MISMO TAMAÑO QUE LOS REGISTROS, YA QUE SINO GENERAREMOS UN DESCUADRE EN LOS ACCESOS Y LAS ASIGNACIONES.
@@ -93,17 +60,8 @@ Es muy importante que las variables que empleemos TENGAN EL MISMO TAMAÑO QUE LO
 
 /* Consejo, añadir una breve descripción de la finalidad de cada variable. De este modo se sabrá para que vale cada uno */
 /* Aunque NO SON NECESARIOS EN TODOS LOS CAMPOS, al hacer referencia a valores que pueden modificarse en cualquier momento y sin necesidad de hacer nada nosotros, es muy recomendable incluir el modificador volatile en todos los campos; o al menos en los de entrada de valores. */
-typedef struct {
-  volatile uint32_t MODER;     // GPIO port mode register
-  volatile uint32_t OTYPER;    // GPIO port output type register
-  volatile uint32_t OSPEEDR;   // GPIO port output speed register
-  volatile uint32_t PUPDR;     // GPIO port pull-up/pull-down register
-  volatile uint32_t IDR;       // GPIO port input data register
-  volatile uint32_t ODR;       // GPIO port output data register
-  volatile uint32_t BSRR;      // GPIO port bit set/reset register
-  volatile uint32_t LCKR;      // GPIO port configuration lock register
-  volatile uint32_t AFR[2];    // GPIO alternate function. 0 -> low / 1 -> high
-} GPIO_RegDef_t;
+
+/* RCC struct definition and macro declaration */
 
 typedef struct {
   volatile uint32_t CR;          // RCC clock control register
@@ -142,16 +100,25 @@ typedef struct {
   volatile uint32_t PLLI2SCFGR;  // RCC PLLI2S configuration register
 } RCC_RegDef_t;
 
+#define RCC_AHB1_EN_RESET_GPIOA	((uint32_t) 0x00000001)
+#define RCC_AHB1_EN_RESET_GPIOB	((uint32_t) 0x00000002)
+#define RCC_AHB1_EN_RESET_GPIOC	((uint32_t) 0x00000004)
+#define RCC_AHB1_EN_RESET_GPIOD	((uint32_t) 0x00000008)
+#define RCC_AHB1_EN_RESET_GPIOE	((uint32_t) 0x00000010)
+#define RCC_AHB1_EN_RESET_GPIOF	((uint32_t) 0x00000020)
+#define RCC_AHB1_EN_RESET_GPIOG	((uint32_t) 0x00000040)
+#define RCC_AHB1_EN_RESET_GPIOH	((uint32_t) 0x00000080)
+#define RCC_AHB1_EN_RESET_GPIOI	((uint32_t) 0x00000100)
+
+#define RCC_APB1_EN_RESET_SPI2	((uint32_t) 0x00004000)
+#define RCC_APB1_EN_RESET_SPI3	((uint32_t) 0x00008000)
+
+#define RCC_APB2_EN_RESET_SPI1	((uint32_t) 0x00001000)
+
+#define RCC     ((RCC_RegDef_t *) RCCB_ADDR)
+
 // EXTI -> EXTernal Interrupt
 #define TOTAL_EXTI_CONFIGURATION_REGISTERS ((uint8_t) 4)
-
-typedef struct {
-  volatile uint32_t MEMRMP;
-  volatile uint32_t PMC;
-  volatile uint32_t EXTICR[TOTAL_EXTI_CONFIGURATION_REGISTERS];
-  uint32_t reserved[2];
-  volatile uint32_t CMPCR;
-} SYSCFG_t;
 
 typedef struct {
   volatile uint32_t IMR;
@@ -162,94 +129,16 @@ typedef struct {
   volatile uint32_t PR;
 } EXTI_t;
 
-/* Declaramos las macros con los punteros a los diferentes perifericos GPIOs. Al tener la estructura el mismo tamaño que los diferentes registros de un GPIO, y tener esta estructura los mismo tamaños que los registros, cuando modifiquemos un registro del struct, modificaremos directamente la posicion de memoria donde está el registro deseado. */  
-#define GPIOA   ((GPIO_RegDef_t *) GPIOAB_ADDR)
-#define GPIOB   ((GPIO_RegDef_t *) GPIOBB_ADDR)
-#define GPIOC   ((GPIO_RegDef_t *) GPIOCB_ADDR)
-#define GPIOD   ((GPIO_RegDef_t *) GPIODB_ADDR)
-#define GPIOE   ((GPIO_RegDef_t *) GPIOEB_ADDR)
-#define GPIOF   ((GPIO_RegDef_t *) GPIOFB_ADDR)
-#define GPIOG   ((GPIO_RegDef_t *) GPIOGB_ADDR)
-#define GPIOH   ((GPIO_RegDef_t *) GPIOHB_ADDR)
-#define GPIOI   ((GPIO_RegDef_t *) GPIOIB_ADDR)
-#define GPIOJ   ((GPIO_RegDef_t *) GPIOJB_ADDR)
-#define GPIOK   ((GPIO_RegDef_t *) GPIOKB_ADDR)
-
-#define RCC     ((RCC_RegDef_t *) RCCB_ADDR)
-
-#define SYSCFG  ((SYSCFG_t *) SYSCFGB_ADDR)
-
 #define EXTI    ((EXTI_t *) EXTIB_ADDR)
 
-#define GPIO_PORT_A ((uint8_t) 0)
-#define GPIO_PORT_B ((uint8_t) 1)
-#define GPIO_PORT_C ((uint8_t) 2)
-#define GPIO_PORT_D ((uint8_t) 3)
-#define GPIO_PORT_E ((uint8_t) 4)
-#define GPIO_PORT_F ((uint8_t) 5)
-#define GPIO_PORT_G ((uint8_t) 6)
-#define GPIO_PORT_H ((uint8_t) 7)
-#define GPIO_PORT_I ((uint8_t) 8)
+typedef struct {
+  volatile uint32_t MEMRMP;
+  volatile uint32_t PMC;
+  volatile uint32_t EXTICR[TOTAL_EXTI_CONFIGURATION_REGISTERS];
+  uint32_t reserved[2];
+  volatile uint32_t CMPCR;
+} SYSCFG_t;
 
-#define GPIO_PIN_0   ((uint8_t) 0)
-#define GPIO_PIN_1   ((uint8_t) 1)
-#define GPIO_PIN_2   ((uint8_t) 2)
-#define GPIO_PIN_3   ((uint8_t) 3)
-#define GPIO_PIN_4   ((uint8_t) 4)
-#define GPIO_PIN_5   ((uint8_t) 5)
-#define GPIO_PIN_6   ((uint8_t) 6)
-#define GPIO_PIN_7   ((uint8_t) 7)
-#define GPIO_PIN_8   ((uint8_t) 8)
-#define GPIO_PIN_9   ((uint8_t) 9)
-#define GPIO_PIN_10  ((uint8_t) 10)
-#define GPIO_PIN_11  ((uint8_t) 11)
-#define GPIO_PIN_12  ((uint8_t) 12)
-#define GPIO_PIN_13  ((uint8_t) 13)
-#define GPIO_PIN_14  ((uint8_t) 14)
-#define GPIO_PIN_15  ((uint8_t) 15)
-
-#define GPIO_NON_ALTERNATE_FUNCTIONALITY  ((uint16_t) 0xFFFF)
-
-#define GPIO_MODE_INPUT       ((uint8_t) 0)
-#define GPIO_MODE_OUTPUT      ((uint8_t) 1)
-#define GPIO_MODE_ALTERNATE   ((uint8_t) 2)
-#define GPIO_MODE_ANALOG      ((uint8_t) 3)
-#define GPIO_MODE_INT_RISING  ((uint8_t) 4)
-#define GPIO_MODE_INT_FALLING ((uint8_t) 5)
-#define GPIO_MODE_INT_RIS_FAL ((uint8_t) 6)
-
-#define GPIO_NO_PULL_UP_DOWN  ((uint8_t) 0)
-#define GPIO_PULL_UP          ((uint8_t) 1)
-#define GPIO_PULL_DOWN        ((uint8_t) 2)
-#define GPIO_PUPD_RESERVED    ((uint8_t) 3)
-
-/* */
-#define GPIO_OUTPUT_PUSH_PULL   ((uint8_t) 0)
-#define GPIO_OUTPUT_OPEN_DRAIN  ((uint8_t) 1)
-
-#define GPIO_SPEED_LOW        ((uint8_t) 0)
-#define GPIO_SPEED_MEDIUM     ((uint8_t) 1)
-#define GPIO_SPEED_HIGH       ((uint8_t) 2)
-#define GPIO_SPEED_VERY_HIGH  ((uint8_t) 3)
-
-/* SPI -> Serial Peripheral Interface */
-typedef struct{
-  volatile uint32_t CR1;     /* SPI Control Register 1 */
-  volatile uint32_t CR2;     /* SPI Control Register 2 */
-  volatile uint32_t SR;      /* SPI Status Register */
-  volatile uint32_t DR;      /* SPI Data Register */
-  volatile uint32_t CRCPR;   /* SPI CRC Polynomial Register */
-  volatile uint32_t RXCRCR;  /* SPI RX CRC Register */
-  volatile uint32_t TXCRCR;  /* SPI TX CRC Register */
-  volatile uint32_t I2SCFGR; /* SPI I2S Configuration Register */
-  volatile uint32_t I2SPR;   /* SPI I2S Prescaler Register */
-}SPI_RegDef_t;
-
-#define SPI1_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40013000)
-#define SPI2_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40003800)
-#define SPI3_BASEADDR  (SPI_RefDef_t *) ((uint32_t) 0x40003C00)
-#define SPI4_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40013400)
-#define SPI5_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40015000)
-#define SPI6_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40015400)
+#define SYSCFG  ((SYSCFG_t *) SYSCFGB_ADDR)
 
 #endif /* STM32F407_XX_H */

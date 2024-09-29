@@ -3,7 +3,56 @@
 
 #include "stm32f407xx.h"
 
-#define TOTAL_STM32F407_GPIO ((uint8_t) 8)
+#define GPIO_PORT_A ((uint8_t) 0)
+#define GPIO_PORT_B ((uint8_t) 1)
+#define GPIO_PORT_C ((uint8_t) 2)
+#define GPIO_PORT_D ((uint8_t) 3)
+#define GPIO_PORT_E ((uint8_t) 4)
+#define GPIO_PORT_F ((uint8_t) 5)
+#define GPIO_PORT_G ((uint8_t) 6)
+#define GPIO_PORT_H ((uint8_t) 7)
+#define GPIO_PORT_I ((uint8_t) 8)
+
+#define GPIO_PIN_0   ((uint8_t) 0)
+#define GPIO_PIN_1   ((uint8_t) 1)
+#define GPIO_PIN_2   ((uint8_t) 2)
+#define GPIO_PIN_3   ((uint8_t) 3)
+#define GPIO_PIN_4   ((uint8_t) 4)
+#define GPIO_PIN_5   ((uint8_t) 5)
+#define GPIO_PIN_6   ((uint8_t) 6)
+#define GPIO_PIN_7   ((uint8_t) 7)
+#define GPIO_PIN_8   ((uint8_t) 8)
+#define GPIO_PIN_9   ((uint8_t) 9)
+#define GPIO_PIN_10  ((uint8_t) 10)
+#define GPIO_PIN_11  ((uint8_t) 11)
+#define GPIO_PIN_12  ((uint8_t) 12)
+#define GPIO_PIN_13  ((uint8_t) 13)
+#define GPIO_PIN_14  ((uint8_t) 14)
+#define GPIO_PIN_15  ((uint8_t) 15)
+
+#define GPIO_NON_ALTERNATE_FUNCTIONALITY  ((uint16_t) 0xFFFF)
+
+#define GPIO_MODE_INPUT       ((uint8_t) 0)
+#define GPIO_MODE_OUTPUT      ((uint8_t) 1)
+#define GPIO_MODE_ALTERNATE   ((uint8_t) 2)
+#define GPIO_MODE_ANALOG      ((uint8_t) 3)
+#define GPIO_MODE_INT_RISING  ((uint8_t) 4)
+#define GPIO_MODE_INT_FALLING ((uint8_t) 5)
+#define GPIO_MODE_INT_RIS_FAL ((uint8_t) 6)
+
+#define GPIO_NO_PULL_UP_DOWN  ((uint8_t) 0)
+#define GPIO_PULL_UP          ((uint8_t) 1)
+#define GPIO_PULL_DOWN        ((uint8_t) 2)
+#define GPIO_PUPD_RESERVED    ((uint8_t) 3)
+
+/* */
+#define GPIO_OUTPUT_PUSH_PULL   ((uint8_t) 0)
+#define GPIO_OUTPUT_OPEN_DRAIN  ((uint8_t) 1)
+
+#define GPIO_SPEED_LOW        ((uint8_t) 0)
+#define GPIO_SPEED_MEDIUM     ((uint8_t) 1)
+#define GPIO_SPEED_HIGH       ((uint8_t) 2)
+#define GPIO_SPEED_VERY_HIGH  ((uint8_t) 3)
 
 void GPIO_initialization_module();
 
