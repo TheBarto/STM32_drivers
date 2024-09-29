@@ -2,6 +2,34 @@
 #include "stm32cortexm4.h"
 #include <stdio.h>
 
+/* GPIO -> General Purpose Input Output */
+typedef struct {
+  volatile uint32_t MODER;     // GPIO port mode register
+  volatile uint32_t OTYPER;    // GPIO port output type register
+  volatile uint32_t OSPEEDR;   // GPIO port output speed register
+  volatile uint32_t PUPDR;     // GPIO port pull-up/pull-down register
+  volatile uint32_t IDR;       // GPIO port input data register
+  volatile uint32_t ODR;       // GPIO port output data register
+  volatile uint32_t BSRR;      // GPIO port bit set/reset register
+  volatile uint32_t LCKR;      // GPIO port configuration lock register
+  volatile uint32_t AFR[2];    // GPIO alternate function. 0 -> low / 1 -> high
+} GPIO_RegDef_t;
+
+#define GPIOAB_ADDR   (uint32_t) 0x40020000
+#define GPIOBB_ADDR   (uint32_t) 0x40020400
+#define GPIOCB_ADDR   (uint32_t) 0x40020800
+#define GPIODB_ADDR   (uint32_t) 0x40020C00
+#define GPIOEB_ADDR   (uint32_t) 0x40021000
+#define GPIOFB_ADDR   (uint32_t) 0x40021400
+#define GPIOGB_ADDR   (uint32_t) 0x40021800
+#define GPIOHB_ADDR   (uint32_t) 0x40021C00
+#define GPIOIB_ADDR   (uint32_t) 0x40022000
+#define GPIOJB_ADDR   (uint32_t) 0x40022400
+#define GPIOKB_ADDR   (uint32_t) 0x40022800
+
+#define TOTAL_STM32F407_GPIO ((uint8_t) 8)
+
+/* Declaramos las macros con los punteros a los diferentes perifericos GPIOs. Al tener la estructura el mismo tamaño que los diferentes registros de un GPIO, y tener esta estructura los mismo tamaños que los registros, cuando modifiquemos un registro del struct, modificaremos directamente la posicion de memoria donde está el registro deseado. */
 /* Static array with the memory address of the different GPIOs employed.
  * With this we can modify the different GPIO element presents in the board */
 static GPIO_RegDef_t* GPIOS_ports[TOTAL_STM32F407_GPIO];
