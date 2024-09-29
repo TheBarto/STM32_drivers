@@ -232,4 +232,24 @@ typedef struct {
 #define GPIO_SPEED_HIGH       ((uint8_t) 2)
 #define GPIO_SPEED_VERY_HIGH  ((uint8_t) 3)
 
+/* SPI -> Serial Peripheral Interface */
+typedef struct{
+  volatile uint32_t CR1;     /* SPI Control Register 1 */
+  volatile uint32_t CR2;     /* SPI Control Register 2 */
+  volatile uint32_t SR;      /* SPI Status Register */
+  volatile uint32_t DR;      /* SPI Data Register */
+  volatile uint32_t CRCPR;   /* SPI CRC Polynomial Register */
+  volatile uint32_t RXCRCR;  /* SPI RX CRC Register */
+  volatile uint32_t TXCRCR;  /* SPI TX CRC Register */
+  volatile uint32_t I2SCFGR; /* SPI I2S Configuration Register */
+  volatile uint32_t I2SPR;   /* SPI I2S Prescaler Register */
+}SPI_RegDef_t;
+
+#define SPI1_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40013000)
+#define SPI2_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40003800)
+#define SPI3_BASEADDR  (SPI_RefDef_t *) ((uint32_t) 0x40003C00)
+#define SPI4_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40013400)
+#define SPI5_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40015000)
+#define SPI6_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40015400)
+
 #endif /* STM32F407_XX_H */
