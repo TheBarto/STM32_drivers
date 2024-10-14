@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+typedef uint8_t bool;
+
+#define true	((uint8_t) 1)
+#define false	((uint8_t) 0)
+
 /* Posibilidad de añadir un prefijo a las macros como DRV_ o
  * algo asi para saber a que capa pertenece la macro */
 

@@ -2,6 +2,11 @@
 #define STM32F407XX_SPI_DRIVER_H
 
 #include <stdint.h>
+<<<<<<< Updated upstream
+=======
+#include "stm32f407xx.h"
+#include "stm32cortexm4.h"
+>>>>>>> Stashed changes
 
 /* SPI Configuration Macros */
 
@@ -40,9 +45,17 @@
 #define SPI_RXONLY_FULL_DUPLEX    (uint8_t) 0
 #define SPI_RXONLY_OUTPUT_DISABLE (uint8_t) 1
 
+<<<<<<< Updated upstream
 #define SPI_FULL_DUPLEX_MODE      (uint8_t) 0
 #define SPI_HALF_DUPLEX_MODE      (uint8_t) 1
 #define SPI_SIMPLE_CONECTION_MODE (uint8_t) 2
+=======
+#define SPI_FULL_DUPLEX_MODE      		(uint8_t) 0
+#define SPI_HALF_DUPLEX_MODE      		(uint8_t) 1
+#define SPI_SIMPLE_CONECTION_RX_MODE	(uint8_t) 2
+
+/* Maybe set one more set of configuration. To set the transmission RX/TX, only TX or only RX.*/
+>>>>>>> Stashed changes
 
 #define SPI_MSB_FIRST  (uint8_t) 0
 #define SPI_LSB_FIRST  (uint8_t) 1
@@ -168,6 +181,14 @@ void SPI_clock_enable_disabled(uint8_t SPI_peripheral, uint8_t enable_disable);
  *
  * @return      -
  */
+<<<<<<< Updated upstream
 void SPI_Send_Data(uint8_t SPI_peripheral, uint8_t* data, uint8_t data_len, uint8_t *data_recv);
+=======
+void SPI_Send_Data(uint8_t SPI_peripheral, uint8_t* data, uint8_t data_len);
+
+void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable);
+
+void SPI_Receive_Data(uint8_t SPI_peripheral, uint8_t *data_recv);
+>>>>>>> Stashed changes
 
 #endif /* STM32F407XX_SPI_DRIVER_H */
