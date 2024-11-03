@@ -278,3 +278,96 @@ void SPI_Receive_Data(uint8_t SPI_peripheral, uint8_t *data_recv)
 	//Deactivate the SPI peripheral
 	//enable_disable_SPI_peripheral(SPI_peripheral, false);
 }
+
+#if 0
+
+typedef struct{
+	SPI_RegDef_t* spi_driver;
+	uint8_t data_send[MAX_DATA_SEND];
+	uint8_t total_data_send;
+	uint8_t data_recv[MAX_DATA_RECV];
+	uint8_t total_data_recv;
+	uint8_t state;
+}SPI_Controller;
+
+static SPI_Controller SPIs[TOTAL_STM32F407_SPI];
+
+void SPI_initialization_module()
+{
+	memset(&SPIs[SPI1_PERIPHERAL], 0, sizeof(SPI_Controller));
+	SPIs[SPI1_PERIPHERAL].spi_driver = SPI1_BASEADDR;
+	memset(&SPIs[SPI2_PERIPHERAL], 0, sizeof(SPI_Controller));
+	SPIs[SPI2_PERIPHERAL].spi_driver = SPI2_BASEADDR;
+	memset(&SPIs[SPI3_PERIPHERAL], 0, sizeof(SPI_Controller));
+	SPIs[SPI3_PERIPHERAL] = SPI3_BASEADDR;
+	memset(&SPIs[SPI4_PERIPHERAL], 0, sizeof(SPI_Controller));
+	SPIs[SPI4_PERIPHERAL] = SPI4_BASEADDR;
+	memset(&SPIs[SPI5_PERIPHERAL], 0, sizeof(SPI_Controller));
+	SPIs[SPI5_PERIPHERAL] = SPI5_BASEADDR;
+	memset(&SPIs[SPI6_PERIPHERAL], 0, sizeof(SPI_Controller));
+	SPIs[SPI6_PERIPHERAL] = SPI6_BASEADDR;
+}
+
+
+void SPI_load_data_send(uint8_tSPI_peripheral, uint8_t* data, uint8_t total_data)
+{
+	memcpy(&SPIs[0].data_send[0], &data[0], total_data);
+	SPIs[0].total_data_send = total_data;
+	SPIs[0].state = SPI_controller_st_send;
+	//Before send anything, enable/activate the peripheral
+	return;
+}
+
+void SPI_Controller_tick()
+{
+
+	switch(SPIs[i].state) {
+	case SPI_controller_st_idle:
+		break;
+	case SPI_controller_st_send:
+		if((!SPIs[i].total_data_send) ||
+		   (!SPIs[SPI_peripheral]->SR & SPI_SR_TXE)) {
+			SPIs[i].state = SPI_controller_st_idle;
+			break;
+		}
+		SPI_Send_Data(i, SPIs[i].data_send, SPIs[i].total_data_send);
+		SPIs[i].state = SPI_controller_st_send_w;
+		break;
+	case SPI_controller_st_send_w:
+		if((SPIs[i]->CR1 & SPI_CR1_MASK_BIDIMODE) ||
+		   (!SPIs[i]->SR & SPI_SR_RXNE))
+			break;
+
+		SPI_Receive_Data(i, uint8_t *data_recv);
+
+		SPIs[i].state = SPI_controller_st_recv_ACK_NACK;
+		break;
+	case SPI_controller_st_recv_ACK_NACK:
+		if((SPIs[i]->CR1 & SPI_CR1_MASK_BIDIMODE) ||
+		   (!SPIs[i]->SR & SPI_SR_RXNE))
+			break;
+		SPI_Receive_Data(i, uint8_t *data_recv);
+		if(data_recv == ACK)
+			SPIs[i].ind_data_send++;
+
+		if(SPIs[i].ind_data_send == SPIs[i].total_data_send)
+			SPIs[i].state = SPI_controller_st_send;
+		else
+			SPIs[i].state = SPI_controller_st_idle;
+		break;
+	case SPI_controller_st_recv:
+		//Must check that total_data_recv == 0, first data is the total
+		break;
+
+	}
+
+
+}
+
+
+
+#endif
+
+
+
+
