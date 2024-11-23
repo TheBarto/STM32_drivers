@@ -4,7 +4,7 @@
  *  Created on: Oct 27, 2024
  *      Author: Usuario
  */
-
+#if 0
 #include "stm32f407xx_spi_driver.h"
 
 typedef struct{
@@ -47,3 +47,4 @@ void SPI_Controller_tick()
 
 
 }
+#endif

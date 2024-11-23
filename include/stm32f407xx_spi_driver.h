@@ -179,4 +179,8 @@ void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable);
 
 void SPI_Receive_Data(uint8_t SPI_peripheral, uint8_t *data_recv);
 
+
+void SPI_Controller_tick();
+
+void SPI_load_data_send(uint8_t SPI_peripheral, uint8_t* data, uint8_t total_data);
 #endif /* STM32F407XX_SPI_DRIVER_H */

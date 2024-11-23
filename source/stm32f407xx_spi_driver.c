@@ -1,6 +1,8 @@
 #include "stm32f407xx_spi_driver.h"
 #include "stm32f407xx.h"
 
+#define VERSION2
+
 /* SPI -> Serial Peripheral Interface */
 typedef struct{
   volatile uint32_t CR1;     /* SPI Control Register 1 */
@@ -22,18 +24,6 @@ typedef struct{
 #define SPI6_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40015400)
 
 #define TOTAL_STM32F407_SPI ((uint8_t) 6)
-
-static SPI_RegDef_t* SPIs[TOTAL_STM32F407_SPI];
-
-void SPI_initialization_module()
-{
-	SPIs[SPI1_PERIPHERAL] = SPI1_BASEADDR;
-	SPIs[SPI2_PERIPHERAL] = SPI2_BASEADDR;
-	SPIs[SPI3_PERIPHERAL] = SPI3_BASEADDR;
-	SPIs[SPI4_PERIPHERAL] = SPI4_BASEADDR;
-	SPIs[SPI5_PERIPHERAL] = SPI5_BASEADDR;
-	SPIs[SPI6_PERIPHERAL] = SPI6_BASEADDR;
-}
 
 static void SPI_IRQ_configure(uint8_t SPI_peripheral, uint8_t IRQ_priority)
 {
@@ -68,48 +58,6 @@ static void SPI_IRQ_configure(uint8_t SPI_peripheral, uint8_t IRQ_priority)
 	 */
 	NVIC->NVIC_IPR[(SPI_IRQ_number/4)] |= ((IRQ_priority*0x10)*((SPI_IRQ_number%4)<<8));
 	NVIC->NVIC_ISER[(SPI_IRQ_number/31)] |= (SPI_IRQ_number%31);
-
-	return;
-}
-
-void SPI_Initialization(uint8_t SPI_peripheral, uint8_t communication_mode,
-                        uint8_t mode, uint8_t CPOL, uint8_t CPHA,
-                        uint8_t DFF, uint8_t BR_prescaler, uint8_t SSM,
-						uint8_t interrupt_enable, uint8_t IRQ_priority)
-{
-	/* Before doing nothing it mandatory to activate the SPI clock */
-	SPI_clock_enable_disabled(SPI_peripheral, true);
-
-	/* This way we get the peripheral clean */
-	SPI_Reset(SPI_peripheral);
-
-	uint16_t aux_setter = 0;
-	aux_setter |= (CPHA * SPI_CR1_MASK_CPHA);
-	aux_setter |= (CPOL * SPI_CR1_MASK_CPOL);
-	aux_setter |= (mode * SPI_CR1_MASK_MASTER);
-	aux_setter |= (BR_prescaler * SPI_CR1_MASK_BAUD_RATE_CLK);
-	aux_setter |= (SSM * SPI_CR1_MASK_SSM);
-	aux_setter |= (DFF * SPI_CR1_MASK_DFF);
-
-	/* In Full-Duplex mode, the BIDIOE bit must remain as 0 */
-	switch(communication_mode)
-	{
-	case SPI_HALF_DUPLEX_MODE:
-		aux_setter |= SPI_CR1_MASK_BIDIMODE;
-		/* BIDIOE bit must be used to decide which send and receive */
-		break;
-	case SPI_SIMPLE_CONECTION_RX_MODE:
-		/* With this we just disable the output. We're just receiving data. */
-		aux_setter |= SPI_CR1_MASK_RX_ONLY;
-		break;
-	}
-
-	SPIs[SPI_peripheral]->CR1 = aux_setter;
-
-	if(interrupt_enable) {
-		 SPI_IRQ_configure(SPI_peripheral, IRQ_priority);
-		 SPIs[SPI_peripheral]->CR2 |= interrupt_enable;
-	}
 
 	return;
 }
@@ -156,9 +104,74 @@ void SPI_clock_enable_disabled(uint8_t SPI_peripheral, uint8_t enable_disable)
 	return;
 }
 
+#if defined(VERSION1)
+static SPI_RegDef_t* SPIs[TOTAL_STM32F407_SPI];
+
+void SPI_initialization_module()
+{
+	SPIs[SPI1_PERIPHERAL] = SPI1_BASEADDR;
+	SPIs[SPI2_PERIPHERAL] = SPI2_BASEADDR;
+	SPIs[SPI3_PERIPHERAL] = SPI3_BASEADDR;
+	SPIs[SPI4_PERIPHERAL] = SPI4_BASEADDR;
+	SPIs[SPI5_PERIPHERAL] = SPI5_BASEADDR;
+	SPIs[SPI6_PERIPHERAL] = SPI6_BASEADDR;
+}
+
+void SPI_Initialization(uint8_t SPI_peripheral, uint8_t communication_mode,
+                        uint8_t mode, uint8_t CPOL, uint8_t CPHA,
+                        uint8_t DFF, uint8_t BR_prescaler, uint8_t SSM,
+						uint8_t interrupt_enable, uint8_t IRQ_priority)
+{
+	/* Before doing nothing it mandatory to activate the SPI clock */
+	SPI_clock_enable_disabled(SPI_peripheral, true);
+
+	/* This way we get the peripheral clean */
+	SPI_Reset(SPI_peripheral);
+
+	uint16_t aux_setter = 0;
+	aux_setter |= (CPHA * SPI_CR1_MASK_CPHA);
+	aux_setter |= (CPOL * SPI_CR1_MASK_CPOL);
+	aux_setter |= (mode * SPI_CR1_MASK_MASTER);
+	aux_setter |= (BR_prescaler * SPI_CR1_MASK_BAUD_RATE_CLK);
+	aux_setter |= (SSM * SPI_CR1_MASK_SSM);
+	aux_setter |= (DFF * SPI_CR1_MASK_DFF);
+
+	/* In Full-Duplex mode, the BIDIOE bit must remain as 0 */
+	switch(communication_mode)
+	{
+	case SPI_HALF_DUPLEX_MODE:
+		aux_setter |= SPI_CR1_MASK_BIDIMODE;
+		/* BIDIOE bit must be used to decide which send and receive */
+		break;
+	case SPI_SIMPLE_CONECTION_RX_MODE:
+		/* With this we just disable the output. We're just receiving data. */
+		aux_setter |= SPI_CR1_MASK_RX_ONLY;
+		break;
+	}
+
+#if defined(VERSION1)
+	SPIs[SPI_peripheral]->CR1 = aux_setter;
+
+	if(interrupt_enable) {
+		 SPI_IRQ_configure(SPI_peripheral, IRQ_priority);
+		 SPIs[SPI_peripheral]->CR2 |= interrupt_enable;
+	}
+#else
+	SPIs[SPI_peripheral].spi_driver->CR1 = aux_setter;
+
+	if(interrupt_enable) {
+		 SPI_IRQ_configure(SPI_peripheral, IRQ_priority);
+		 SPIs[SPI_peripheral].spi_driver->CR2 |= interrupt_enable;
+	}
+#endif
+
+	return;
+}
+
 void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable)
 {
 
+	/* First of all, activate the NSS exit, by software of hardware. */
 	if(enable) {
 		(SPIs[SPI_peripheral]->CR1 & SPI_CR1_MASK_SSM) ?
 			(SPIs[SPI_peripheral]->CR1 |= SPI_CR1_MASK_SSI) :
@@ -279,13 +292,32 @@ void SPI_Receive_Data(uint8_t SPI_peripheral, uint8_t *data_recv)
 	//enable_disable_SPI_peripheral(SPI_peripheral, false);
 }
 
-#if 0
+#elif defined(VERSION2)
+//For the moment is just for full-duplex mode.
+
+#include <stdio.h>
+#include <string.h>
+
+typedef enum {
+	SPI_controller_st_non_init = 0,
+	SPI_controller_st_idle,
+	SPI_controller_st_send,
+	SPI_controller_st_send_w,
+	SPI_controller_st_recv,
+	SPI_controller_st_recv_w,
+	SPI_controller_st_recv_ACK_NACK,
+} SPI_Controller_States;
+
+#define MAX_DATA_SEND ((uint8_t) 50)
+#define MAX_DATA_RECV ((uint8_t) 50)
 
 typedef struct{
 	SPI_RegDef_t* spi_driver;
 	uint8_t data_send[MAX_DATA_SEND];
+	uint8_t ind_data_send;
 	uint8_t total_data_send;
 	uint8_t data_recv[MAX_DATA_RECV];
+	uint8_t ind_data_recv;
 	uint8_t total_data_recv;
 	uint8_t state;
 }SPI_Controller;
@@ -299,75 +331,191 @@ void SPI_initialization_module()
 	memset(&SPIs[SPI2_PERIPHERAL], 0, sizeof(SPI_Controller));
 	SPIs[SPI2_PERIPHERAL].spi_driver = SPI2_BASEADDR;
 	memset(&SPIs[SPI3_PERIPHERAL], 0, sizeof(SPI_Controller));
-	SPIs[SPI3_PERIPHERAL] = SPI3_BASEADDR;
+	SPIs[SPI3_PERIPHERAL].spi_driver = SPI3_BASEADDR;
 	memset(&SPIs[SPI4_PERIPHERAL], 0, sizeof(SPI_Controller));
-	SPIs[SPI4_PERIPHERAL] = SPI4_BASEADDR;
+	SPIs[SPI4_PERIPHERAL].spi_driver = SPI4_BASEADDR;
 	memset(&SPIs[SPI5_PERIPHERAL], 0, sizeof(SPI_Controller));
-	SPIs[SPI5_PERIPHERAL] = SPI5_BASEADDR;
+	SPIs[SPI5_PERIPHERAL].spi_driver = SPI5_BASEADDR;
 	memset(&SPIs[SPI6_PERIPHERAL], 0, sizeof(SPI_Controller));
-	SPIs[SPI6_PERIPHERAL] = SPI6_BASEADDR;
+	SPIs[SPI6_PERIPHERAL].spi_driver = SPI6_BASEADDR;
 }
 
-
-void SPI_load_data_send(uint8_tSPI_peripheral, uint8_t* data, uint8_t total_data)
+void SPI_Initialization(uint8_t SPI_peripheral, uint8_t communication_mode,
+                        uint8_t mode, uint8_t CPOL, uint8_t CPHA,
+                        uint8_t DFF, uint8_t BR_prescaler, uint8_t SSM,
+						uint8_t interrupt_enable, uint8_t IRQ_priority)
 {
-	memcpy(&SPIs[0].data_send[0], &data[0], total_data);
-	SPIs[0].total_data_send = total_data;
-	SPIs[0].state = SPI_controller_st_send;
-	//Before send anything, enable/activate the peripheral
+	/* Before doing nothing it mandatory to activate the SPI clock */
+	SPI_clock_enable_disabled(SPI_peripheral, true);
+
+	/* This way we get the peripheral clean */
+	SPI_Reset(SPI_peripheral);
+
+	uint16_t aux_setter = 0;
+	aux_setter |= (CPHA * SPI_CR1_MASK_CPHA);
+	aux_setter |= (CPOL * SPI_CR1_MASK_CPOL);
+	aux_setter |= (mode * SPI_CR1_MASK_MASTER);
+	aux_setter |= (BR_prescaler * SPI_CR1_MASK_BAUD_RATE_CLK);
+	aux_setter |= (SSM * SPI_CR1_MASK_SSM);
+	aux_setter |= (DFF * SPI_CR1_MASK_DFF);
+
+	/* In Full-Duplex mode, the BIDIOE bit must remain as 0 */
+	switch(communication_mode)
+	{
+	case SPI_HALF_DUPLEX_MODE:
+		aux_setter |= SPI_CR1_MASK_BIDIMODE;
+		/* BIDIOE bit must be used to decide which send and receive */
+		break;
+	case SPI_SIMPLE_CONECTION_RX_MODE:
+		/* With this we just disable the output. We're just receiving data. */
+		aux_setter |= SPI_CR1_MASK_RX_ONLY;
+		break;
+	}
+
+	SPIs[SPI_peripheral].spi_driver->CR1 = aux_setter;
+
+	if(interrupt_enable) {
+		 SPI_IRQ_configure(SPI_peripheral, IRQ_priority);
+		 SPIs[SPI_peripheral].spi_driver->CR2 |= interrupt_enable;
+	}
+
+	SPIs[SPI_peripheral].state = SPI_controller_st_idle;
+
 	return;
 }
 
-void SPI_Controller_tick()
+void SPI_load_data_send(uint8_t SPI_peripheral, uint8_t* data, uint8_t total_data)
 {
+	memcpy(&SPIs[SPI_peripheral].data_send[0], &data[0], total_data);
+	SPIs[SPI_peripheral].ind_data_send = 0;
+	SPIs[SPI_peripheral].total_data_send = total_data;
+	SPIs[SPI_peripheral].state = SPI_controller_st_send;
 
-	switch(SPIs[i].state) {
-	case SPI_controller_st_idle:
-		break;
-	case SPI_controller_st_send:
-		if((!SPIs[i].total_data_send) ||
-		   (!SPIs[SPI_peripheral]->SR & SPI_SR_TXE)) {
-			SPIs[i].state = SPI_controller_st_idle;
-			break;
-		}
-		SPI_Send_Data(i, SPIs[i].data_send, SPIs[i].total_data_send);
-		SPIs[i].state = SPI_controller_st_send_w;
-		break;
-	case SPI_controller_st_send_w:
-		if((SPIs[i]->CR1 & SPI_CR1_MASK_BIDIMODE) ||
-		   (!SPIs[i]->SR & SPI_SR_RXNE))
-			break;
+	//Before send anything, enable/activate the peripheral
+	enable_disable_SPI_peripheral(SPI_peripheral, true);
 
-		SPI_Receive_Data(i, uint8_t *data_recv);
-
-		SPIs[i].state = SPI_controller_st_recv_ACK_NACK;
-		break;
-	case SPI_controller_st_recv_ACK_NACK:
-		if((SPIs[i]->CR1 & SPI_CR1_MASK_BIDIMODE) ||
-		   (!SPIs[i]->SR & SPI_SR_RXNE))
-			break;
-		SPI_Receive_Data(i, uint8_t *data_recv);
-		if(data_recv == ACK)
-			SPIs[i].ind_data_send++;
-
-		if(SPIs[i].ind_data_send == SPIs[i].total_data_send)
-			SPIs[i].state = SPI_controller_st_send;
-		else
-			SPIs[i].state = SPI_controller_st_idle;
-		break;
-	case SPI_controller_st_recv:
-		//Must check that total_data_recv == 0, first data is the total
-		break;
-
-	}
-
-
+	printf("Data to send: %s", SPIs[SPI_peripheral].data_send);
+	return;
 }
 
+void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable)
+{
 
+	/* First of all, activate the NSS exit, by software of hardware. */
+	if(enable) {
+		(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM) ?
+			(SPIs[SPI_peripheral].spi_driver->CR1 |= SPI_CR1_MASK_SSI) :
+			(SPIs[SPI_peripheral].spi_driver->CR2 |= SPI_CR2_MASK_SSOE);
 
+		/* Second, enable the SPI peripheral. WHEN THIS BIT IS ENABLE,
+		 * COMUNICATION WILL START, AND NO CONFIGURATION CHANGES WILL
+		 * BE ACCEPTED. */
+		SPIs[SPI_peripheral].spi_driver->CR1 |= SPI_CR1_MASK_SPE;
+	} else {
+		(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM) ?
+			(SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SSI) :
+			(SPIs[SPI_peripheral].spi_driver->CR2 &= ~SPI_CR2_MASK_SSOE);
+
+		//Deactivate the SPI peripheral
+		SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SPE;
+	}
+	return;
+}
+
+/* Try to make a non-blocking system without exceptions */
+void SPI_Controller_tick()
+{
+	for(uint8_t i = 0; i < TOTAL_STM32F407_SPI; i++) {
+		switch(SPIs[i].state) {
+		case SPI_controller_st_non_init:
+			break;
+		case SPI_controller_st_idle:
+			if((SPIs[i].ind_data_send < SPIs[i].total_data_send) &&
+			   (SPIs[i].spi_driver->SR & SPI_SR_TXE))
+				SPIs[i].state = SPI_controller_st_send;
+			else if(SPIs[i].spi_driver->SR & SPI_SR_RXNE)
+				SPIs[i].state = SPI_controller_st_recv;
+			//Check if we have something to send or recv something
+			break;
+		case SPI_controller_st_recv:
+			if(SPIs[i].spi_driver->SR & SPI_SR_RXNE) {
+				SPIs[i].state = SPI_controller_st_idle;
+				break;
+			}
+			//Must check that total_data_recv == 0, first data is the total
+			if(SPIs[i].ind_data_recv == 0) {
+				SPIs[i].total_data_recv = (SPIs[i].spi_driver->DR%0x100);
+			} else {
+				//Read the data from the SPI_DR register.
+				if(SPIs[i].spi_driver->CR1&SPI_CR1_MASK_DFF) {
+					SPIs[i].data_recv[SPIs[i].ind_data_recv] = SPIs[i].spi_driver->DR/0x100;
+					SPIs[i].data_recv[SPIs[i].ind_data_recv+1] = SPIs[i].spi_driver->DR%0x100;
+					SPIs[i].ind_data_recv+=2;
+				} else {
+					SPIs[i].data_recv[SPIs[i].ind_data_recv] = SPIs[i].spi_driver->DR;
+					SPIs[i].ind_data_recv++;
+				}
+			}
+
+			SPIs[i].state = SPI_controller_st_idle;
+			if(SPIs[i].ind_data_recv == SPIs[i].total_data_recv) {
+				//call a callback, or something to save the data
+				printf("Data received: %s", SPIs[i].data_recv);
+			}
+			break;
+		case SPI_controller_st_send:
+			if((!SPIs[i].total_data_send) ||
+			   (!(SPIs[i].spi_driver->SR & SPI_SR_TXE))) {
+				SPIs[i].state = SPI_controller_st_idle;
+				break;
+			}
+			SPIs[i].spi_driver->DR = (SPIs[i].spi_driver->CR1&SPI_CR1_MASK_DFF) ?
+										((SPIs[i].data_send[SPIs[i].ind_data_send]*0x100)+
+										  SPIs[i].data_send[SPIs[i].ind_data_send+1]) :
+										  SPIs[i].data_send[SPIs[i].ind_data_send];
+
+			SPIs[i].state = SPI_controller_st_send_w;
+			//break;
+		case SPI_controller_st_send_w:
+			if((SPIs[i].spi_driver->CR1 & SPI_CR1_MASK_BIDIMODE) ||
+			   (!(SPIs[i].spi_driver->SR & SPI_SR_RXNE)))
+				break;
+
+			/* SPI_Receive_Data */
+			if(SPIs[i].spi_driver->CR1&SPI_CR1_MASK_DFF) {
+				SPIs[i].data_recv[SPIs[i].ind_data_recv] = SPIs[i].spi_driver->DR/0x100;
+				SPIs[i].data_recv[SPIs[i].ind_data_recv+1] = SPIs[i].spi_driver->DR%0x100;
+				SPIs[i].ind_data_recv+=2;
+			} else {
+				SPIs[i].data_recv[SPIs[i].ind_data_recv] = SPIs[i].spi_driver->DR;
+				SPIs[i].ind_data_recv++;
+			}
+
+			SPIs[i].ind_data_send++;
+			if(SPIs[i].ind_data_send < SPIs[i].total_data_send) {
+				SPIs[i].state = SPI_controller_st_send;
+			} else {
+				SPIs[i].state = SPI_controller_st_idle;
+				//Use function to deactivate
+				enable_disable_SPI_peripheral(i, false);
+			}
+			//SPIs[i].state = SPI_controller_st_recv_ACK_NACK;
+			break;
+		/*case SPI_controller_st_recv_ACK_NACK:
+			if((SPIs[i]->CR1 & SPI_CR1_MASK_BIDIMODE) ||
+			   (!SPIs[i]->SR & SPI_SR_RXNE))
+				break;
+			SPI_Receive_Data(i, uint8_t *data_recv);
+			if(data_recv == ACK)
+				SPIs[i].ind_data_send++;
+
+			if(SPIs[i].ind_data_send < SPIs[i].total_data_send)
+				SPIs[i].state = SPI_controller_st_send;
+			else
+				SPIs[i].state = SPI_controller_st_idle;
+			break;*/
+
+		}
+	}
+}
 #endif
-
-
-
-
