@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define BOARDLESS_VERSION
+
 typedef uint8_t bool;
 
 #define true	((uint8_t) 1)
@@ -120,7 +122,12 @@ typedef struct {
 
 #define RCC_APB2_EN_RESET_SPI1	((uint32_t) 0x00001000)
 
+#if !defined(BOARDLESS_VERSION)
 #define RCC     ((RCC_RegDef_t *) RCCB_ADDR)
+#else
+extern uint8_t RCC_mem_struct[136]; /* 34 registros * 4bytes */
+#define RCC		((RCC_RegDef_t *) &RCC_mem_struct[0])
+#endif
 
 // EXTI -> EXTernal Interrupt
 #define TOTAL_EXTI_CONFIGURATION_REGISTERS ((uint8_t) 4)

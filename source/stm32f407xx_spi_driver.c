@@ -16,12 +16,29 @@ typedef struct{
   volatile uint32_t I2SPR;   /* SPI I2S Prescaler Register */
 }SPI_RegDef_t;
 
+
+#if !defined(BOARDLESS_VERSION)
 #define SPI1_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40013000)
 #define SPI2_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40003800)
 #define SPI3_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40003C00)
 #define SPI4_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40013400)
 #define SPI5_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40015000)
 #define SPI6_BASEADDR  (SPI_RegDef_t *) ((uint32_t) 0x40015400)
+#else
+/* Simular las dir. base de configuracion de los registros*/
+uint8_t SPI_Reg_Mem[216];
+uint8_t RCC_mem_struct[136]; /* 34 registros * 4bytes */
+
+#define SPI1_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[0])
+#define SPI2_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[36])
+#define SPI3_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[72])
+#define SPI4_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[108])
+#define SPI5_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[144])
+#define SPI6_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[180])
+#endif
+
+/* Mark as the receptor of the data the SPI 3.*/
+uint8_t recp = 2;
 
 #define TOTAL_STM32F407_SPI ((uint8_t) 6)
 
@@ -305,7 +322,11 @@ typedef enum {
 	SPI_controller_st_send_w,
 	SPI_controller_st_recv,
 	SPI_controller_st_recv_w,
+	SPI_controller_st_deactive_SPI,
 	SPI_controller_st_recv_ACK_NACK,
+#if defined(BOARDLESS_VERSION)
+	SPI_controller_st_pass_data,
+#endif
 } SPI_Controller_States;
 
 #define MAX_DATA_SEND ((uint8_t) 50)
@@ -411,6 +432,11 @@ void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable)
 		 * COMUNICATION WILL START, AND NO CONFIGURATION CHANGES WILL
 		 * BE ACCEPTED. */
 		SPIs[SPI_peripheral].spi_driver->CR1 |= SPI_CR1_MASK_SPE;
+
+#if defined(BOARDLESS_VERSION)
+		//Enable the transmition flag
+		SPIs[SPI_peripheral].spi_driver->SR |= SPI_SR_TXE;
+#endif
 	} else {
 		(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM) ?
 			(SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SSI) :
@@ -464,9 +490,10 @@ void SPI_Controller_tick()
 			}
 			break;
 		case SPI_controller_st_send:
-			if((!SPIs[i].total_data_send) ||
-			   (!(SPIs[i].spi_driver->SR & SPI_SR_TXE))) {
+			if((!SPIs[i].total_data_send)) {
 				SPIs[i].state = SPI_controller_st_idle;
+				break;
+			}else if(!(SPIs[i].spi_driver->SR & SPI_SR_TXE)) {
 				break;
 			}
 			SPIs[i].spi_driver->DR = (SPIs[i].spi_driver->CR1&SPI_CR1_MASK_DFF) ?
@@ -474,8 +501,25 @@ void SPI_Controller_tick()
 										  SPIs[i].data_send[SPIs[i].ind_data_send+1]) :
 										  SPIs[i].data_send[SPIs[i].ind_data_send];
 
+#if defined(BOARDLESS_VERSION)
+			SPIs[i].state = SPI_controller_st_pass_data;
+#else
 			SPIs[i].state = SPI_controller_st_send_w;
+#endif
 			//break;
+#if defined(BOARDLESS_VERSION)
+		case SPI_controller_st_pass_data:
+			printf("Data sent MASTER TO SLAVE: %c\n", SPIs[i].spi_driver->DR);
+			printf("Data sent SLAVE TO MASTER: %c\n", SPIs[recp].spi_driver->DR);
+			uint16_t swap = SPIs[i].spi_driver->DR;
+			SPIs[i].spi_driver->DR = SPIs[recp].spi_driver->DR;
+			SPIs[recp].spi_driver->DR = swap;
+
+			SPIs[recp].spi_driver->SR |= SPI_SR_RXNE;
+			SPIs[i].spi_driver->SR |= SPI_SR_RXNE;
+			SPIs[i].spi_driver->SR |= SPI_SR_TXE;
+			//break;
+#endif
 		case SPI_controller_st_send_w:
 			if((SPIs[i].spi_driver->CR1 & SPI_CR1_MASK_BIDIMODE) ||
 			   (!(SPIs[i].spi_driver->SR & SPI_SR_RXNE)))
@@ -495,11 +539,18 @@ void SPI_Controller_tick()
 			if(SPIs[i].ind_data_send < SPIs[i].total_data_send) {
 				SPIs[i].state = SPI_controller_st_send;
 			} else {
-				SPIs[i].state = SPI_controller_st_idle;
+				SPIs[i].state = SPI_controller_st_deactive_SPI;
 				//Use function to deactivate
+				//while((!(SPIs[SPI_peripheral]->SR & SPI_SR_TXE)) && (SPIs[SPI_peripheral]->SR & SPI_SR_BSY));
 				enable_disable_SPI_peripheral(i, false);
 			}
 			//SPIs[i].state = SPI_controller_st_recv_ACK_NACK;
+			break;
+		case SPI_controller_st_deactive_SPI:
+			if((!(SPIs[i].spi_driver->SR & SPI_SR_TXE)) ||
+				(SPIs[i].spi_driver->SR & SPI_SR_BSY))
+				break;
+			SPIs[i].state = SPI_controller_st_idle;
 			break;
 		/*case SPI_controller_st_recv_ACK_NACK:
 			if((SPIs[i]->CR1 & SPI_CR1_MASK_BIDIMODE) ||
