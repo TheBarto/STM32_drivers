@@ -29,12 +29,12 @@ typedef struct{
 uint8_t SPI_Reg_Mem[216];
 uint8_t RCC_mem_struct[136]; /* 34 registros * 4bytes */
 
-#define SPI1_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[0])
-#define SPI2_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[36])
-#define SPI3_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[72])
-#define SPI4_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[108])
-#define SPI5_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[144])
-#define SPI6_BASEADDR  (SPI_RegDef_t *) ((uint32_t) &SPI_Reg_Mem[180])
+#define SPI1_BASEADDR  (SPI_RegDef_t *) ((uint32_t* ) &SPI_Reg_Mem[0])
+#define SPI2_BASEADDR  (SPI_RegDef_t *) ((uint32_t* ) &SPI_Reg_Mem[36])
+#define SPI3_BASEADDR  (SPI_RegDef_t *) ((uint32_t* ) &SPI_Reg_Mem[72])
+#define SPI4_BASEADDR  (SPI_RegDef_t *) ((uint32_t* ) &SPI_Reg_Mem[108])
+#define SPI5_BASEADDR  (SPI_RegDef_t *) ((uint32_t* ) &SPI_Reg_Mem[144])
+#define SPI6_BASEADDR  (SPI_RegDef_t *) ((uint32_t* ) &SPI_Reg_Mem[180])
 #endif
 
 /* Mark as the receptor of the data the SPI 3.*/
@@ -137,7 +137,7 @@ void SPI_initialization_module()
 void SPI_Initialization(uint8_t SPI_peripheral, uint8_t communication_mode,
                         uint8_t mode, uint8_t CPOL, uint8_t CPHA,
                         uint8_t DFF, uint8_t BR_prescaler, uint8_t SSM,
-						uint8_t interrupt_enable, uint8_t IRQ_priority)
+                        uint8_t interrupt_enable, uint8_t IRQ_priority)
 {
 	/* Before doing nothing it mandatory to activate the SPI clock */
 	SPI_clock_enable_disabled(SPI_peripheral, true);
@@ -364,7 +364,7 @@ void SPI_initialization_module()
 void SPI_Initialization(uint8_t SPI_peripheral, uint8_t communication_mode,
                         uint8_t mode, uint8_t CPOL, uint8_t CPHA,
                         uint8_t DFF, uint8_t BR_prescaler, uint8_t SSM,
-						uint8_t interrupt_enable, uint8_t IRQ_priority)
+                        uint8_t interrupt_enable, uint8_t IRQ_priority)
 {
 	/* Before doing nothing it mandatory to activate the SPI clock */
 	SPI_clock_enable_disabled(SPI_peripheral, true);
@@ -407,20 +407,28 @@ void SPI_Initialization(uint8_t SPI_peripheral, uint8_t communication_mode,
 
 void SPI_load_data_send(uint8_t SPI_peripheral, uint8_t* data, uint8_t total_data)
 {
-	memcpy(&SPIs[SPI_peripheral].data_send[0], &data[0], total_data);
+	memcpy(&SPIs[SPI_peripheral].data_send[1], &data[0], total_data);
 	SPIs[SPI_peripheral].ind_data_send = 0;
 	SPIs[SPI_peripheral].total_data_send = total_data;
+	SPIs[SPI_peripheral].data_send[0] = total_data;
 	SPIs[SPI_peripheral].state = SPI_controller_st_send;
 
 	//Before send anything, enable/activate the peripheral
 	enable_disable_SPI_peripheral(SPI_peripheral, true);
 
-	printf("Data to send: %s", SPIs[SPI_peripheral].data_send);
+#if defined(PRINTF_DEBUG)
+	printf("Data to send: %s\n", SPIs[SPI_peripheral].data_send);
+#endif
 	return;
 }
 
 void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable)
 {
+
+#if defined(PRINTF_DEBUG)
+	printf("enable_disable_SPI_peripheral, to peripheral: %d, enable: %d\n",
+	       SPI_peripheral, enable);
+#endif
 
 	/* First of all, activate the NSS exit, by software of hardware. */
 	if(enable) {
@@ -464,7 +472,7 @@ void SPI_Controller_tick()
 			//Check if we have something to send or recv something
 			break;
 		case SPI_controller_st_recv:
-			if(SPIs[i].spi_driver->SR & SPI_SR_RXNE) {
+			if(!(SPIs[i].spi_driver->SR & SPI_SR_RXNE)) {
 				SPIs[i].state = SPI_controller_st_idle;
 				break;
 			}
@@ -476,17 +484,19 @@ void SPI_Controller_tick()
 				if(SPIs[i].spi_driver->CR1&SPI_CR1_MASK_DFF) {
 					SPIs[i].data_recv[SPIs[i].ind_data_recv] = SPIs[i].spi_driver->DR/0x100;
 					SPIs[i].data_recv[SPIs[i].ind_data_recv+1] = SPIs[i].spi_driver->DR%0x100;
-					SPIs[i].ind_data_recv+=2;
+					SPIs[i].ind_data_recv++;
 				} else {
 					SPIs[i].data_recv[SPIs[i].ind_data_recv] = SPIs[i].spi_driver->DR;
-					SPIs[i].ind_data_recv++;
 				}
 			}
+			SPIs[i].ind_data_recv++;
 
 			SPIs[i].state = SPI_controller_st_idle;
 			if(SPIs[i].ind_data_recv == SPIs[i].total_data_recv) {
 				//call a callback, or something to save the data
-				printf("Data received: %s", SPIs[i].data_recv);
+#if defined(PRINTF_DEBUG)
+				printf("Data received: %s\n", SPIs[i].data_recv);
+#endif
 			}
 			break;
 		case SPI_controller_st_send:
@@ -500,17 +510,18 @@ void SPI_Controller_tick()
 										((SPIs[i].data_send[SPIs[i].ind_data_send]*0x100)+
 										  SPIs[i].data_send[SPIs[i].ind_data_send+1]) :
 										  SPIs[i].data_send[SPIs[i].ind_data_send];
-
 #if defined(BOARDLESS_VERSION)
 			SPIs[i].state = SPI_controller_st_pass_data;
 #else
 			SPIs[i].state = SPI_controller_st_send_w;
 #endif
-			//break;
+			break;
 #if defined(BOARDLESS_VERSION)
 		case SPI_controller_st_pass_data:
-			printf("Data sent MASTER TO SLAVE: %c\n", SPIs[i].spi_driver->DR);
-			printf("Data sent SLAVE TO MASTER: %c\n", SPIs[recp].spi_driver->DR);
+#if defined(PRINTF_DEBUG)
+			printf(">>>> Data sent MASTER TO SLAVE: %c\n", SPIs[i].spi_driver->DR);
+			printf("<< Data sent SLAVE TO MASTER: %c\n", SPIs[recp].spi_driver->DR);
+#endif
 			uint16_t swap = SPIs[i].spi_driver->DR;
 			SPIs[i].spi_driver->DR = SPIs[recp].spi_driver->DR;
 			SPIs[recp].spi_driver->DR = swap;
@@ -539,10 +550,12 @@ void SPI_Controller_tick()
 			if(SPIs[i].ind_data_send < SPIs[i].total_data_send) {
 				SPIs[i].state = SPI_controller_st_send;
 			} else {
+#if defined(PRINTF_DEBUG)
+				printf("All data sent, pass to state: SPI_controller_st_deactive_SPI\n"); 
+#endif
 				SPIs[i].state = SPI_controller_st_deactive_SPI;
 				//Use function to deactivate
 				//while((!(SPIs[SPI_peripheral]->SR & SPI_SR_TXE)) && (SPIs[SPI_peripheral]->SR & SPI_SR_BSY));
-				enable_disable_SPI_peripheral(i, false);
 			}
 			//SPIs[i].state = SPI_controller_st_recv_ACK_NACK;
 			break;
@@ -551,6 +564,10 @@ void SPI_Controller_tick()
 				(SPIs[i].spi_driver->SR & SPI_SR_BSY))
 				break;
 			SPIs[i].state = SPI_controller_st_idle;
+#if defined(PRINTF_DEBUG)
+			printf("From st_deactive_SPI to st_idle\n");
+#endif
+			enable_disable_SPI_peripheral(i, false);
 			break;
 		/*case SPI_controller_st_recv_ACK_NACK:
 			if((SPIs[i]->CR1 & SPI_CR1_MASK_BIDIMODE) ||

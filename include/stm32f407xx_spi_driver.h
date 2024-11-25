@@ -134,7 +134,7 @@ void SPI_initialization_module();
 void SPI_Initialization(uint8_t SPI_peripheral, uint8_t communication_mode,
                         uint8_t mode, uint8_t CPOL, uint8_t CPHA,
                         uint8_t DFF, uint8_t BR_prescaler, uint8_t SSM,
-						uint8_t interrupt_enable, uint8_t IRQ_priority);
+                        uint8_t interrupt_enable, uint8_t IRQ_priority);
 
 /************************************************************************
  * @fn          - SPI_Reset

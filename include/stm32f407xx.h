@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define BOARDLESS_VERSION
+#define PRINTF_DEBUG
 
 typedef uint8_t bool;
 
