@@ -171,7 +171,7 @@ void SPI_clock_enable_disabled(uint8_t SPI_peripheral, uint8_t enable_disable);
  *
  * @return      -
  */
-void SPI_Send_Receive_Data(uint8_t SPI_peripheral, uint8_t* data, uint8_t data_len, uint8_t *data_recv);
+//void SPI_Send_Receive_Data(uint8_t SPI_peripheral, uint8_t* data, uint8_t data_len, uint8_t *data_recv);
 
 void SPI_Send_Data(uint8_t SPI_peripheral, uint8_t* data, uint8_t data_len);
 
@@ -183,4 +183,8 @@ void SPI_Receive_Data(uint8_t SPI_peripheral, uint8_t *data_recv);
 void SPI_Controller_tick();
 
 void SPI_load_data_send(uint8_t SPI_peripheral, uint8_t* data, uint8_t total_data);
+
+void SPI_Send_Receive_Data(uint8_t SPI_peripheral, uint8_t* data, uint8_t data_len);
+
+int8_t SPI_peripheral_able(uint8_t SPI_peripheral);
 #endif /* STM32F407XX_SPI_DRIVER_H */

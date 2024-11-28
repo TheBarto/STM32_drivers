@@ -409,7 +409,7 @@ void SPI_load_data_send(uint8_t SPI_peripheral, uint8_t* data, uint8_t total_dat
 {
 	memcpy(&SPIs[SPI_peripheral].data_send[1], &data[0], total_data);
 	SPIs[SPI_peripheral].ind_data_send = 0;
-	SPIs[SPI_peripheral].total_data_send = total_data;
+	SPIs[SPI_peripheral].total_data_send = (total_data+1); //+1 is for the size
 	SPIs[SPI_peripheral].data_send[0] = total_data;
 	SPIs[SPI_peripheral].state = SPI_controller_st_send;
 
@@ -446,14 +446,21 @@ void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable)
 		SPIs[SPI_peripheral].spi_driver->SR |= SPI_SR_TXE;
 #endif
 	} else {
+		//Deactivate the SPI peripheral
+		SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SPE;
+
 		(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM) ?
 			(SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SSI) :
 			(SPIs[SPI_peripheral].spi_driver->CR2 &= ~SPI_CR2_MASK_SSOE);
-
-		//Deactivate the SPI peripheral
-		SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SPE;
 	}
 	return;
+}
+
+int8_t SPI_peripheral_able(uint8_t SPI_peripheral)
+{
+	return ((SPIs[SPI_peripheral].ind_data_send == 0) &&
+			(SPIs[SPI_peripheral].state == SPI_controller_st_idle)) ?
+			0 : -1;
 }
 
 /* Try to make a non-blocking system without exceptions */
@@ -467,7 +474,7 @@ void SPI_Controller_tick()
 			if((SPIs[i].ind_data_send < SPIs[i].total_data_send) &&
 			   (SPIs[i].spi_driver->SR & SPI_SR_TXE))
 				SPIs[i].state = SPI_controller_st_send;
-			else if(SPIs[i].spi_driver->SR & SPI_SR_RXNE)
+			else if(SPIs[i].spi_driver->SR & SPI_SR_RXNE) //BUG QUE MARCA RXNE SIN ESTARLO. CAE EN BUCLE INFINITO
 				SPIs[i].state = SPI_controller_st_recv;
 			//Check if we have something to send or recv something
 			break;
@@ -476,14 +483,16 @@ void SPI_Controller_tick()
 				SPIs[i].state = SPI_controller_st_idle;
 				break;
 			}
+
 			//Must check that total_data_recv == 0, first data is the total
 			if(SPIs[i].ind_data_recv == 0) {
 				SPIs[i].total_data_recv = (SPIs[i].spi_driver->DR%0x100);
 			} else {
 				//Read the data from the SPI_DR register.
 				if(SPIs[i].spi_driver->CR1&SPI_CR1_MASK_DFF) {
-					SPIs[i].data_recv[SPIs[i].ind_data_recv] = SPIs[i].spi_driver->DR/0x100;
-					SPIs[i].data_recv[SPIs[i].ind_data_recv+1] = SPIs[i].spi_driver->DR%0x100;
+					uint16_t aux = SPIs[i].spi_driver->DR;
+					SPIs[i].data_recv[SPIs[i].ind_data_recv] = (aux/0x100);
+					SPIs[i].data_recv[SPIs[i].ind_data_recv+1] = (aux%0x100);
 					SPIs[i].ind_data_recv++;
 				} else {
 					SPIs[i].data_recv[SPIs[i].ind_data_recv] = SPIs[i].spi_driver->DR;
@@ -491,12 +500,15 @@ void SPI_Controller_tick()
 			}
 			SPIs[i].ind_data_recv++;
 
-			SPIs[i].state = SPI_controller_st_idle;
-			if(SPIs[i].ind_data_recv == SPIs[i].total_data_recv) {
+			if((SPIs[i].ind_data_send > 0) &&
+			   (SPIs[i].total_data_send)) {
+				SPIs[i].state = SPI_controller_st_send;
+			} else if(SPIs[i].ind_data_recv == SPIs[i].total_data_recv) {
 				//call a callback, or something to save the data
 #if defined(PRINTF_DEBUG)
 				printf("Data received: %s\n", SPIs[i].data_recv);
 #endif
+				SPIs[i].state = SPI_controller_st_idle;
 			}
 			break;
 		case SPI_controller_st_send:
@@ -510,13 +522,22 @@ void SPI_Controller_tick()
 										((SPIs[i].data_send[SPIs[i].ind_data_send]*0x100)+
 										  SPIs[i].data_send[SPIs[i].ind_data_send+1]) :
 										  SPIs[i].data_send[SPIs[i].ind_data_send];
-#if defined(BOARDLESS_VERSION)
-			SPIs[i].state = SPI_controller_st_pass_data;
-#else
-			SPIs[i].state = SPI_controller_st_send_w;
+
+			/*******************/
+			SPIs[i].ind_data_send++; //BUG, SI CR1_MASK_DFF, SUMAR 2
+			if(SPIs[i].ind_data_send < SPIs[i].total_data_send) {
+				SPIs[i].state = SPI_controller_st_recv;
+			} else if(SPIs[i].ind_data_send == SPIs[i].total_data_send) {
+#if defined(PRINTF_DEBUG)
+				printf("All data sent, pass to state: SPI_controller_st_deactive_SPI\n");
 #endif
-			break;
-#if defined(BOARDLESS_VERSION)
+				SPIs[i].state = SPI_controller_st_deactive_SPI;
+			}
+			/*******************/
+#if !defined(BOARDLESS_VERSION)
+			//SPIs[i].state = SPI_controller_st_send_w;
+#else
+			SPIs[i].state = SPI_controller_st_pass_data;
 		case SPI_controller_st_pass_data:
 #if defined(PRINTF_DEBUG)
 			printf(">>>> Data sent MASTER TO SLAVE: %c\n", SPIs[i].spi_driver->DR);
@@ -529,22 +550,23 @@ void SPI_Controller_tick()
 			SPIs[recp].spi_driver->SR |= SPI_SR_RXNE;
 			SPIs[i].spi_driver->SR |= SPI_SR_RXNE;
 			SPIs[i].spi_driver->SR |= SPI_SR_TXE;
-			//break;
 #endif
+			break;
 		case SPI_controller_st_send_w:
 			if((SPIs[i].spi_driver->CR1 & SPI_CR1_MASK_BIDIMODE) ||
 			   (!(SPIs[i].spi_driver->SR & SPI_SR_RXNE)))
 				break;
 
+			uint16_t aux = SPIs[i].spi_driver->DR;
 			/* SPI_Receive_Data */
 			if(SPIs[i].spi_driver->CR1&SPI_CR1_MASK_DFF) {
-				SPIs[i].data_recv[SPIs[i].ind_data_recv] = SPIs[i].spi_driver->DR/0x100;
-				SPIs[i].data_recv[SPIs[i].ind_data_recv+1] = SPIs[i].spi_driver->DR%0x100;
-				SPIs[i].ind_data_recv+=2;
+				SPIs[i].data_recv[SPIs[i].ind_data_recv] = aux/0x100;
+				SPIs[i].data_recv[SPIs[i].ind_data_recv+1] = aux%0x100;
+				SPIs[i].ind_data_recv++;
 			} else {
 				SPIs[i].data_recv[SPIs[i].ind_data_recv] = SPIs[i].spi_driver->DR;
-				SPIs[i].ind_data_recv++;
 			}
+			SPIs[i].ind_data_recv++;
 
 			SPIs[i].ind_data_send++;
 			if(SPIs[i].ind_data_send < SPIs[i].total_data_send) {
@@ -564,6 +586,10 @@ void SPI_Controller_tick()
 				(SPIs[i].spi_driver->SR & SPI_SR_BSY))
 				break;
 			SPIs[i].state = SPI_controller_st_idle;
+			SPIs[i].ind_data_send = 0;
+			SPIs[i].total_data_send = 0;
+			SPIs[i].ind_data_recv = 0;
+			SPIs[i].total_data_recv = 0;
 #if defined(PRINTF_DEBUG)
 			printf("From st_deactive_SPI to st_idle\n");
 #endif
@@ -585,5 +611,38 @@ void SPI_Controller_tick()
 
 		}
 	}
+}
+
+void SPI_Send_Receive_Data(uint8_t SPI_peripheral, uint8_t* data, uint8_t data_len)
+{
+	/* First, in master mode, we have to enable SPI NSS port (case of none multimaster).
+	 * If we use hardware mode, it's mandatory to set SSOE bit. In software mode, SSI must
+	 * be set. */
+	/* IMPORTANT: THIS MUST BE BEFORE THE SPI ACTIVATION, OTHERWISE AN ERROR WILL HAPPEND */
+	enable_disable_SPI_peripheral(SPI_peripheral, true);
+
+	for(uint8_t i = 0; i < data_len; i++) {
+		//Third, we need to check that the TXE flag is empty-> 1
+		while(!(SPIs[SPI_peripheral].spi_driver->SR & SPI_SR_TXE));
+
+		//Second, we load the data into the TX buffer, to start the sending process process
+		SPIs[SPI_peripheral].spi_driver->DR = (SPIs[SPI_peripheral].spi_driver->CR1&SPI_CR1_MASK_DFF) ? ((data[i]*0x100)+data[i+1]) : data[i];
+
+		//Wait until the bit RXNE is set to 1. This indicate that all the data are transfer.
+		while(!(SPIs[SPI_peripheral].spi_driver->SR & SPI_SR_RXNE));
+
+		//Read the data from the SPI_DR register.
+		if(SPIs[SPI_peripheral].spi_driver->CR1&SPI_CR1_MASK_DFF) {
+			SPIs[SPI_peripheral].data_recv[i] = SPIs[SPI_peripheral].spi_driver->DR/0x100;
+			SPIs[SPI_peripheral].data_recv[(i+1)] = SPIs[SPI_peripheral].spi_driver->DR%0x100;
+		} else {
+			SPIs[SPI_peripheral].data_recv[i] = SPIs[SPI_peripheral].spi_driver->DR;
+		}
+	}
+
+	/* Last, wait until TX flag is empty and BSY flag will be 0. TX flag indicates that TX buffer is empty and BSY indicates that SPI is not busy anymore. */
+	while((!(SPIs[SPI_peripheral].spi_driver->SR & SPI_SR_TXE)) && (SPIs[SPI_peripheral].spi_driver->SR & SPI_SR_BSY));
+
+	enable_disable_SPI_peripheral(SPI_peripheral, false);
 }
 #endif
