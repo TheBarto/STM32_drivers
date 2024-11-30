@@ -1,4 +1,5 @@
 #include "stm32f407xx_spi_driver.h"
+#include "stm32f407xx_gpio_driver.h"
 #include "stm32f407xx.h"
 
 #define VERSION2
@@ -334,10 +335,10 @@ typedef enum {
 
 typedef struct{
 	SPI_RegDef_t* spi_driver;
-	uint8_t data_send[MAX_DATA_SEND];
+	uint8_t* data_send;
 	uint8_t ind_data_send;
 	uint8_t total_data_send;
-	uint8_t data_recv[MAX_DATA_RECV];
+	uint8_t* data_recv;
 	uint8_t ind_data_recv;
 	uint8_t total_data_recv;
 	uint8_t state;
@@ -436,9 +437,16 @@ void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable)
 			(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM) ?
 				(SPIs[SPI_peripheral].spi_driver->CR1 |= SPI_CR1_MASK_SSI) :
 				(SPIs[SPI_peripheral].spi_driver->CR2 |= SPI_CR2_MASK_SSOE);
+
+			if(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM) {
+				GPIO_write_pin(GPIO_PORT_B, GPIO_PIN_9, 0); //BUG, corregir
+			}
+
 		} else {
-			if(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM)
-				(SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SSI);/* :
+			if(!GPIO_read_pin(GPIO_PORT_A, GPIO_PIN_15))
+				SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SSI;
+			/*if(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM)
+				(SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SSI); :
 				(SPIs[SPI_peripheral].spi_driver->CR2 |= SPI_CR2_MASK_SSOE);*/
 		}
 
@@ -459,6 +467,7 @@ void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable)
 			(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM) ?
 					(SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SSI) :
 					(SPIs[SPI_peripheral].spi_driver->CR2 &= ~SPI_CR2_MASK_SSOE);
+			GPIO_write_pin(GPIO_PORT_B, GPIO_PIN_9, 1); //BUG, corregir
 		} else {
 			if(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM)
 					(SPIs[SPI_peripheral].spi_driver->CR1 |= SPI_CR1_MASK_SSI);/* :
@@ -470,8 +479,7 @@ void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable)
 
 int8_t SPI_peripheral_able(uint8_t SPI_peripheral)
 {
-	return ((SPIs[SPI_peripheral].ind_data_send == 0) &&
-			(SPIs[SPI_peripheral].state == SPI_controller_st_idle)) ?
+	return (SPIs[SPI_peripheral].state == SPI_controller_st_idle) ?
 			0 : -1;
 }
 

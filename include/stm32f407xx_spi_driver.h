@@ -95,22 +95,11 @@
 
 /* Function declarations */
 /************************************************************************
- * @fn          - GPIO_Initialization
+ * @fn          - SPI_initialization_module
  *
- * @brief       - This function initializes the SPI selected
- *                peripheral with the desire values.
- *
- * @param[in]   - GPIO_port. Value of the desired port.
- * @param[in]   - GPIO_pin. Value of the desired pin inside the port.
- * @param[in]   - mode. Mode of the GPIO. Could be input or output.
- * @param[in]   - pull_up_down. Mode of the internal resistors.
- * @param[in]   - output_type. Indicates if the output is push-pull (two pull resistors) or drain-open (one resistor).
- * @param[in]   - output_speed. Speed of the output. Must see the data sheet to know the values.
- * @param[in]   - alternate_function. Identifier of the alternate pin functionality, if desired.
- * @param[in]   - IRQ_priority. Priority of the interrupt (in case of use it).
- *
- * @return      -
- */
+ * @brief       - This function initializes the SPI struct with initial
+ *                values and the memory address.
+ ************************************************************************/
 void SPI_initialization_module();
 
 /************************************************************************
@@ -128,9 +117,7 @@ void SPI_initialization_module();
  * @param[in]   - DFF. Data Frame Format of the communication.
  * @param[in]   - BR_prescaler. Prescaler of the SCK/SCLK signal (only use in master mode).
  * @param[in]   - SSM. Software Slave Management (only in master mode).
- *
- * @return      -
- */
+ ************************************************************************/
 void SPI_Initialization(uint8_t SPI_peripheral, uint8_t communication_mode,
                         uint8_t mode, uint8_t CPOL, uint8_t CPHA,
                         uint8_t DFF, uint8_t BR_prescaler, uint8_t SSM,
@@ -141,10 +128,8 @@ void SPI_Initialization(uint8_t SPI_peripheral, uint8_t communication_mode,
  *
  * @brief       - This function reset the SPI with the initial values.
  *
- * @param[in]   - SPI_peoipheral. Value of the desired peripheral.
- *
- * @return      -
- */
+ * @param[in]   - SPI_peripheral. Value of the desired peripheral.
+ ************************************************************************/
 void SPI_Reset(uint8_t SPI_peripheral);
 
 /************************************************************************
@@ -154,37 +139,62 @@ void SPI_Reset(uint8_t SPI_peripheral);
  *
  * @param[in]   - SPI_peripheral. Value of the desired SPI peripheral.
  * @param[in]   - enable_disable. Flag to indicate if must enable or disable the clock.
- *
- * @return      -
- */
+ ************************************************************************/
 void SPI_clock_enable_disabled(uint8_t SPI_peripheral, uint8_t enable_disable);
 
 /************************************************************************
- * @fn          - SPI_Send_Data
+ * @fn          - enable_disable_SPI_peripheral
  *
- * @brief       - This function allow send data from the transmitter to the receiver.
+ * @brief       - This function enables/disables the clock of the SPI.
  *
- * @param[in]   - SPI_peripheral. Value of the desired SPI peripheral.
- * @param[in]   - data. Pointer to the data to send.
- * @param[in]   - data_len. Length of the data to send.
- * @param[in]   - data_recv. Array to save the received data.
- *
- * @return      -
- */
-//void SPI_Send_Receive_Data(uint8_t SPI_peripheral, uint8_t* data, uint8_t data_len, uint8_t *data_recv);
-
-void SPI_Send_Data(uint8_t SPI_peripheral, uint8_t* data, uint8_t data_len);
-
+ * @param[in]   - SPI_peripheral. Value of the desired port.
+ * @param[in]   - enable_disable. Flag to indicate if must enable or disable the clock.
+ ************************************************************************/
 void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable);
 
-void SPI_Receive_Data(uint8_t SPI_peripheral, uint8_t *data_recv);
-
-
+/************************************************************************
+ * @fn          - SPI_Controller_tick
+ *
+ * @brief       - This function execute the peripheral actions at the
+ * 				  different peripheral states. This function allow the
+ * 				  non blocking sending/receiving peripheral behavior.
+ ************************************************************************/
 void SPI_Controller_tick();
 
+/************************************************************************
+ * @fn          - SPI_load_data_send
+ *
+ * @brief       - Load the data to be sent to the receiver.
+ *
+ * @param[in]   - SPI_peripheral. Value of the desired SPI peripheral.
+ * @param[in]   - data. Array with the data to be sent.
+ * @param[in]   - total_data. Length of the data array.
+ ************************************************************************/
 void SPI_load_data_send(uint8_t SPI_peripheral, uint8_t* data, uint8_t total_data);
 
+/************************************************************************
+ * @fn          - SPI_Send_Receive_Data
+ *
+ * @brief       - Load the data to be sent to the receiver.
+ *
+ * @param[in]   - SPI_peripheral. Value of the desired SPI peripheral.
+ * @param[in]   - data. Array with the data to be sent.
+ * @param[in]   - total_data. Length of the data array.
+ ************************************************************************/
 void SPI_Send_Receive_Data(uint8_t SPI_peripheral, uint8_t* data, uint8_t data_len);
 
+/************************************************************************
+ * @fn          - SPI_peripheral_able
+ *
+ * @brief       - This function checks the state of the SPI peripheral.
+ * 				  If the peripheral is in use - sending or receiving -
+ * 				  it will notify with an error message to the user.
+ *
+ * @param[in]   - SPI_peripheral. Value of the desired SPI peripheral.
+ *
+ * @return      - return a 0 value if the peripheral is in idle state or
+ * 				  a -1 if it is in use.
+ ************************************************************************/
 int8_t SPI_peripheral_able(uint8_t SPI_peripheral);
+
 #endif /* STM32F407XX_SPI_DRIVER_H */

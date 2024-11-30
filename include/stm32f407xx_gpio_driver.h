@@ -55,6 +55,12 @@
 #define GPIO_SPEED_HIGH       ((uint8_t) 2)
 #define GPIO_SPEED_VERY_HIGH  ((uint8_t) 3)
 
+/************************************************************************
+ * @fn          - GPIO_initialization_module
+ *
+ * @brief       - This function initializes the GPIO struct with initial
+ *                values and the memory address.
+ ************************************************************************/
 void GPIO_initialization_module();
 
 /************************************************************************
@@ -72,7 +78,7 @@ void GPIO_initialization_module();
  * @param[in]   - IRQ_priority. Priority of the interrupt (in case of use it).
  *
  * @return      -
- */
+ ************************************************************************/
 void GPIO_Initialization(uint8_t GPIO_port, uint8_t GPIO_pin, uint8_t mode,
                          uint8_t pull_up_down, uint8_t output_type,
                          uint8_t output_speed, uint16_t alternate_function,
@@ -86,7 +92,7 @@ void GPIO_Initialization(uint8_t GPIO_port, uint8_t GPIO_pin, uint8_t mode,
  * @param[in]   - GPIO_port. Value of the desired port.
  *
  * @return      -
- */
+ ************************************************************************/
 void GPIO_Reset(uint8_t GPIO_port);
 
 /************************************************************************
@@ -96,9 +102,7 @@ void GPIO_Reset(uint8_t GPIO_port);
  *
  * @param[in]   - GPIO_port. Value of the desired port.
  * @param[in]   - enable_disable. Flag to indicate if must enable or disable the clock.
- *
- * @return      -
- */
+ ************************************************************************/
 void GPIO_clock_enable_disable(uint8_t GPIO_port, uint8_t enable_disable);
 
 /************************************************************************
@@ -108,9 +112,7 @@ void GPIO_clock_enable_disable(uint8_t GPIO_port, uint8_t enable_disable);
  *
  * @param[in]   - GPIO_port. Value of the desired port.
  * @param[in]   - GPIO_pin. Value of the desired pin inside the port.
- *
- * @return      -
- */
+ ************************************************************************/
 uint8_t GPIO_read_pin(uint8_t GPIO_port, uint8_t GPIO_pin);
 
 /************************************************************************
@@ -121,9 +123,7 @@ uint8_t GPIO_read_pin(uint8_t GPIO_port, uint8_t GPIO_pin);
  * @param[in]   - GPIO_port. Value of the desired port.
  * @param[in]   - GPIO_pin.  Value of the desired pin inside the port.
  * @param[in]   - pin_value. Value to write into the pin.
- *
- * @return      -
- */
+ ************************************************************************/
 void GPIO_write_pin(uint8_t GPIO_port, uint8_t GPIO_pin, uint8_t pin_value);
 
 /************************************************************************
@@ -132,8 +132,6 @@ void GPIO_write_pin(uint8_t GPIO_port, uint8_t GPIO_pin, uint8_t pin_value);
  * @brief       - Reads a certain port of the desired GPIO.
  *
  * @param[in]   - GPIO_port. Value of the desired port.
- *
- * @return      -
  */
 uint16_t GPIO_read_port(uint8_t GPIO_port);
 
@@ -144,8 +142,6 @@ uint16_t GPIO_read_port(uint8_t GPIO_port);
  *
  * @param[in]   - GPIO_port. Value of the desired port.
  * @param[in]   - port_value. Value to write into the port.
- *
- * @return      -
  */
 void GPIO_write_port(uint8_t GPIO_port, uint16_t port_value);
 
@@ -156,9 +152,7 @@ void GPIO_write_port(uint8_t GPIO_port, uint16_t port_value);
  *
  * @param[in]   - gpio. Pointer to the handling struct of the GPIO.
  * @param[in]   - mode. Mode of the GPIO. Could be input or output.
- *
- * @return      -
- */
+ ************************************************************************/
 /*void GPIO_alternate_funtionality(GPIO_RegDef_t* gpio, uint8_t pin, uint8_t alternate_function);*/
 
 /************************************************************************
@@ -168,9 +162,7 @@ void GPIO_write_port(uint8_t GPIO_port, uint16_t port_value);
  *
  * @param[in]   - gpio. Pointer to the handling struct of the GPIO.
  * @param[in]   - mode. Mode of the GPIO. Could be input or output.
- *
- * @return      -
- */
+ ************************************************************************/
 void GPIO_IRQ_configure(uint8_t GPIO_port, uint8_t GPIO_pin,
                         uint8_t IRQ_priority, uint8_t mode);
 
@@ -184,6 +176,11 @@ void GPIO_IRQ_handling(uint8_t GPIO_pin);
 
 #define GPIO_initialization_input_mode(GPIO_Port, GPIO_port_pin, GPIO_Pull_Up_Down) \
 		GPIO_Initialization(GPIO_Port, GPIO_port_pin, GPIO_MODE_INPUT, GPIO_Pull_Up_Down, \
+							GPIO_OUTPUT_PUSH_PULL, GPIO_SPEED_LOW, GPIO_NON_ALTERNATE_FUNCTIONALITY, \
+							GPIO_NON_IRQ_PRIORITY)
+
+#define GPIO_initialization_output_mode(GPIO_Port, GPIO_port_pin, GPIO_Pull_Up_Down) \
+		GPIO_Initialization(GPIO_Port, GPIO_port_pin, GPIO_MODE_OUTPUT, GPIO_Pull_Up_Down, \
 							GPIO_OUTPUT_PUSH_PULL, GPIO_SPEED_LOW, GPIO_NON_ALTERNATE_FUNCTIONALITY, \
 							GPIO_NON_IRQ_PRIORITY)
 
