@@ -474,21 +474,23 @@ void SPI_Controller_tick()
 			if((SPIs[i].ind_data_send < SPIs[i].total_data_send) &&
 			   (SPIs[i].spi_driver->SR & SPI_SR_TXE))
 				SPIs[i].state = SPI_controller_st_send;
-			else if(SPIs[i].spi_driver->SR & SPI_SR_RXNE) //BUG QUE MARCA RXNE SIN ESTARLO. CAE EN BUCLE INFINITO
+			else if(SPIs[i].spi_driver->SR & SPI_SR_RXNE)
 				SPIs[i].state = SPI_controller_st_recv;
-			//Check if we have something to send or recv something
 			break;
 		case SPI_controller_st_recv:
 			if(!(SPIs[i].spi_driver->SR & SPI_SR_RXNE)) {
+				/* This line is for avoiding a bug. Sometimes we can
+				 * read a RXNE true if we're reading fast and don't
+				 * upgrade on time.*/
 				SPIs[i].state = SPI_controller_st_idle;
 				break;
 			}
 
-			//Must check that total_data_recv == 0, first data is the total
+			/* Must check that total_data_recv == 0, first data is the total */
 			if(SPIs[i].ind_data_recv == 0) {
 				SPIs[i].total_data_recv = (SPIs[i].spi_driver->DR%0x100);
 			} else {
-				//Read the data from the SPI_DR register.
+				/* Read the data from the SPI_DR register. */
 				if(SPIs[i].spi_driver->CR1&SPI_CR1_MASK_DFF) {
 					uint16_t aux = SPIs[i].spi_driver->DR;
 					SPIs[i].data_recv[SPIs[i].ind_data_recv] = (aux/0x100);
@@ -500,9 +502,14 @@ void SPI_Controller_tick()
 			}
 			SPIs[i].ind_data_recv++;
 
-			if((SPIs[i].ind_data_send > 0) &&
-			   (SPIs[i].total_data_send)) {
-				SPIs[i].state = SPI_controller_st_send;
+			if(SPIs[i].total_data_send) {
+				if(SPIs[i].ind_data_send < SPIs[i].total_data_send)
+					/* We're sending data and reading the RX */
+					SPIs[i].state = SPI_controller_st_send;
+				else
+					/* If we send every byte of data, and read every
+					 * byte of data, disable the comunication */
+					SPIs[i].state = SPI_controller_st_deactive_SPI;
 			} else if(SPIs[i].ind_data_recv == SPIs[i].total_data_recv) {
 				//call a callback, or something to save the data
 #if defined(PRINTF_DEBUG)
@@ -525,17 +532,12 @@ void SPI_Controller_tick()
 
 			/*******************/
 			SPIs[i].ind_data_send++; //BUG, SI CR1_MASK_DFF, SUMAR 2
-			if(SPIs[i].ind_data_send < SPIs[i].total_data_send) {
-				SPIs[i].state = SPI_controller_st_recv;
-			} else if(SPIs[i].ind_data_send == SPIs[i].total_data_send) {
 #if defined(PRINTF_DEBUG)
+			if(SPIs[i].ind_data_send == SPIs[i].total_data_send)
 				printf("All data sent, pass to state: SPI_controller_st_deactive_SPI\n");
 #endif
-				SPIs[i].state = SPI_controller_st_deactive_SPI;
-			}
-			/*******************/
 #if !defined(BOARDLESS_VERSION)
-			//SPIs[i].state = SPI_controller_st_send_w;
+			SPIs[i].state = SPI_controller_st_recv;
 #else
 			SPIs[i].state = SPI_controller_st_pass_data;
 		case SPI_controller_st_pass_data:
@@ -552,39 +554,11 @@ void SPI_Controller_tick()
 			SPIs[i].spi_driver->SR |= SPI_SR_TXE;
 #endif
 			break;
-		case SPI_controller_st_send_w:
-			if((SPIs[i].spi_driver->CR1 & SPI_CR1_MASK_BIDIMODE) ||
-			   (!(SPIs[i].spi_driver->SR & SPI_SR_RXNE)))
-				break;
-
-			uint16_t aux = SPIs[i].spi_driver->DR;
-			/* SPI_Receive_Data */
-			if(SPIs[i].spi_driver->CR1&SPI_CR1_MASK_DFF) {
-				SPIs[i].data_recv[SPIs[i].ind_data_recv] = aux/0x100;
-				SPIs[i].data_recv[SPIs[i].ind_data_recv+1] = aux%0x100;
-				SPIs[i].ind_data_recv++;
-			} else {
-				SPIs[i].data_recv[SPIs[i].ind_data_recv] = SPIs[i].spi_driver->DR;
-			}
-			SPIs[i].ind_data_recv++;
-
-			SPIs[i].ind_data_send++;
-			if(SPIs[i].ind_data_send < SPIs[i].total_data_send) {
-				SPIs[i].state = SPI_controller_st_send;
-			} else {
-#if defined(PRINTF_DEBUG)
-				printf("All data sent, pass to state: SPI_controller_st_deactive_SPI\n"); 
-#endif
-				SPIs[i].state = SPI_controller_st_deactive_SPI;
-				//Use function to deactivate
-				//while((!(SPIs[SPI_peripheral]->SR & SPI_SR_TXE)) && (SPIs[SPI_peripheral]->SR & SPI_SR_BSY));
-			}
-			//SPIs[i].state = SPI_controller_st_recv_ACK_NACK;
-			break;
 		case SPI_controller_st_deactive_SPI:
 			if((!(SPIs[i].spi_driver->SR & SPI_SR_TXE)) ||
 				(SPIs[i].spi_driver->SR & SPI_SR_BSY))
 				break;
+			/* Reset everything */
 			SPIs[i].state = SPI_controller_st_idle;
 			SPIs[i].ind_data_send = 0;
 			SPIs[i].total_data_send = 0;
@@ -595,20 +569,6 @@ void SPI_Controller_tick()
 #endif
 			enable_disable_SPI_peripheral(i, false);
 			break;
-		/*case SPI_controller_st_recv_ACK_NACK:
-			if((SPIs[i]->CR1 & SPI_CR1_MASK_BIDIMODE) ||
-			   (!SPIs[i]->SR & SPI_SR_RXNE))
-				break;
-			SPI_Receive_Data(i, uint8_t *data_recv);
-			if(data_recv == ACK)
-				SPIs[i].ind_data_send++;
-
-			if(SPIs[i].ind_data_send < SPIs[i].total_data_send)
-				SPIs[i].state = SPI_controller_st_send;
-			else
-				SPIs[i].state = SPI_controller_st_idle;
-			break;*/
-
 		}
 	}
 }
