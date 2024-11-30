@@ -432,9 +432,15 @@ void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable)
 
 	/* First of all, activate the NSS exit, by software of hardware. */
 	if(enable) {
-		(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM) ?
-			(SPIs[SPI_peripheral].spi_driver->CR1 |= SPI_CR1_MASK_SSI) :
-			(SPIs[SPI_peripheral].spi_driver->CR2 |= SPI_CR2_MASK_SSOE);
+		if(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_MASTER) {
+			(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM) ?
+				(SPIs[SPI_peripheral].spi_driver->CR1 |= SPI_CR1_MASK_SSI) :
+				(SPIs[SPI_peripheral].spi_driver->CR2 |= SPI_CR2_MASK_SSOE);
+		} else {
+			if(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM)
+				(SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SSI);/* :
+				(SPIs[SPI_peripheral].spi_driver->CR2 |= SPI_CR2_MASK_SSOE);*/
+		}
 
 		/* Second, enable the SPI peripheral. WHEN THIS BIT IS ENABLE,
 		 * COMUNICATION WILL START, AND NO CONFIGURATION CHANGES WILL
@@ -449,9 +455,15 @@ void enable_disable_SPI_peripheral(uint8_t SPI_peripheral, bool enable)
 		//Deactivate the SPI peripheral
 		SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SPE;
 
-		(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM) ?
-			(SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SSI) :
-			(SPIs[SPI_peripheral].spi_driver->CR2 &= ~SPI_CR2_MASK_SSOE);
+		if(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_MASTER) {
+			(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM) ?
+					(SPIs[SPI_peripheral].spi_driver->CR1 &= ~SPI_CR1_MASK_SSI) :
+					(SPIs[SPI_peripheral].spi_driver->CR2 &= ~SPI_CR2_MASK_SSOE);
+		} else {
+			if(SPIs[SPI_peripheral].spi_driver->CR1 & SPI_CR1_MASK_SSM)
+					(SPIs[SPI_peripheral].spi_driver->CR1 |= SPI_CR1_MASK_SSI);/* :
+					(SPIs[SPI_peripheral].spi_driver->CR2 &= ~SPI_CR2_MASK_SSOE);*/
+		}
 	}
 	return;
 }
@@ -555,8 +567,11 @@ void SPI_Controller_tick()
 #endif
 			break;
 		case SPI_controller_st_deactive_SPI:
-			if((!(SPIs[i].spi_driver->SR & SPI_SR_TXE)) ||
-				(SPIs[i].spi_driver->SR & SPI_SR_BSY))
+			/* En el esclavo, al no poder enviar el solo, ya que depende de los pulsos de reloj del maestro, el bit TXE no se pondrá a 1 a no ser que reciba informacion
+			 * del maestro - CLOCKS. AL HABER FINALIZADO EL MAESTRO, NO PUEDE HACER ENVIOS Y SE QUEDA MAL*/
+			if((SPIs[i].spi_driver->CR1 & SPI_CR1_MASK_MASTER) &&
+			   ((!(SPIs[i].spi_driver->SR & SPI_SR_TXE)) ||
+				(SPIs[i].spi_driver->SR & SPI_SR_BSY)))
 				break;
 			/* Reset everything */
 			SPIs[i].state = SPI_controller_st_idle;
