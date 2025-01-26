@@ -138,9 +138,9 @@ void I2C_send_data(uint8_t I2C_peripheral, uint8_t *data_send,
 void I2C_receive_data(uint8_t I2C_peripheral, uint8_t *data_recv,
                       uint8_t total_data_recv) {
   uint8_t aux_total_data_recv = 0;
-
+  bool ack_en = (I2C_peripherals[I2C_peripheral]->I2C_CR1 & I2C_CR1_ACK_BIT);
   // Load the total data to receive
-  while (!(I2C_peripherals[I2C_peripheral]->I2C_SR1 & 0x40))
+  while (!(I2C_peripherals[I2C_peripheral]->I2C_SR1 & I2C_SR1_RXNE_BIT))
     ;
   aux_total_data_recv = I2C_peripherals[I2C_peripheral]->I2C_DR;
   total_data_recv = aux_total_data_recv;
@@ -170,6 +170,10 @@ void I2C_receive_data(uint8_t I2C_peripheral, uint8_t *data_recv,
       (!(I2C_peripherals[I2C_peripheral]->I2C_SR2 & I2C_SR2_MST_BIT))) {
     // Finalization process correctly.
   }
+
+  if (ack_en)
+    I2C_peripherals[I2C_peripheral]->I2C_CR1 |= I2C_CR1_ACK_BIT;
+
   return;
 }
 
