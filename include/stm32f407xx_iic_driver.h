@@ -4,24 +4,24 @@
 #define I2C_PERIPHERAL_2 ((uint8_t)1)
 #define I2C_PERIPHERAL_3 ((uint8_t)2)
 
-#define I2C_ACK_ENABLE 1
+#define I2C_ACK_ENABLE  1
 #define I2C_ACK_DISABLE 0
 
-#define I2C_STRETCH_ENABLE 1
+#define I2C_STRETCH_ENABLE  1
 #define I2C_STRETCH_DISABLE 0
 
 #define I2C_STANDARD_MODE 0
-#define I2C_FAST_MODE 1
+#define I2C_FAST_MODE     1
 
 /* Defines for the I2C_CR1 register */
-#define I2C_CR1_SWRST_BIT ((uint32_t)0x00008000)
-#define I2C_CR1_POS_BIT ((uint32_t)0x00000800)
-#define I2C_CR1_ACK_BIT ((uint32_t)0x00000400)
-#define I2C_CR1_STOP_BIT ((uint32_t)0x00000200)
-#define I2C_CR1_START_BIT ((uint32_t)0x00000100)
-#define I2C_CR1_STRETCH_BIT ((uint32_t)0x00000080)
+#define I2C_CR1_SWRST_BIT      ((uint32_t)0x00008000)
+#define I2C_CR1_POS_BIT        ((uint32_t)0x00000800)
+#define I2C_CR1_ACK_BIT        ((uint32_t)0x00000400)
+#define I2C_CR1_STOP_BIT       ((uint32_t)0x00000200)
+#define I2C_CR1_START_BIT      ((uint32_t)0x00000100)
+#define I2C_CR1_STRETCH_BIT    ((uint32_t)0x00000080)
 #define I2C_CR1_SMBUS_MODE_BIT ((uint32_t)0x00000002)
-#define I2C_CR1_ENABLE_BIT ((uint32_t)0x00000001)
+#define I2C_CR1_ENABLE_BIT     ((uint32_t)0x00000001)
 
 /* Defines for the I2C_CR2 register */
 #define I2C_CR2_FREQ_FIELD ((uint32_t)0x0000003F)
@@ -32,18 +32,18 @@
 
 /* Defines for the I2C_SR1 register */
 #define I2C_SR1_START_BIT ((uint32_t)0x00000001)
-#define I2C_SR1_ADDR_BIT ((uint32_t)0x00000002)
-#define I2C_SR1_BTF_BIT ((uint32_t)0x00000004)
+#define I2C_SR1_ADDR_BIT  ((uint32_t)0x00000002)
+#define I2C_SR1_BTF_BIT   ((uint32_t)0x00000004)
 #define I2C_SR1_STOPF_BIT ((uint32_t)0x00000010)
-#define I2C_SR1_RXNE_BIT ((uint32_t)0x00000040)
-#define I2C_SR1_TXE_BIT ((uint32_t)0x00000080)
-#define I2C_SR1_AF_BIT ((uint32_t)0x00000400)
+#define I2C_SR1_RXNE_BIT  ((uint32_t)0x00000040)
+#define I2C_SR1_TXE_BIT   ((uint32_t)0x00000080)
+#define I2C_SR1_AF_BIT    ((uint32_t)0x00000400)
 
 /* Defines for the I2C_SR2 register */
 #define I2C_SR2_MST_BIT ((uint32_t)0x00000001)
 
-#define I2C_CCR_FS_BIT ((uint32_t)0x00008000)
-#define I2C_CCR_DUTY_BIT ((uint32_t)0x00004000)
+#define I2C_CCR_FS_BIT    ((uint32_t)0x00008000)
+#define I2C_CCR_DUTY_BIT  ((uint32_t)0x00004000)
 #define I2C_CCR_CCR_FIELD ((uint32_t)0x00000FFF)
 
 #define I2C_TRISE_TRISE_FIELD ((uint32_t)0x0000003F)
@@ -74,9 +74,13 @@ void I2C_initialization_module();
  * @param[in]   - SCLK               Desired clock frecuency to be used
  *
  ************************************************************************/
-void I2C_initialization(uint8_t I2C_peripheral, bool ACK_enable,
-                        bool stretching_enable, uint8_t address, bool fast_mode,
-                        uint8_t APB_freq, uint16_t SCLK);
+void I2C_initialization(uint8_t  I2C_peripheral,
+                        bool     ACK_enable,
+                        bool     stretching_enable,
+                        uint8_t  address,
+                        bool     fast_mode,
+                        uint8_t  APB_freq,
+                        uint16_t SCLK);
 
 /************************************************************************
  * @fn          - I2C_set_master
@@ -90,8 +94,10 @@ void I2C_initialization(uint8_t I2C_peripheral, bool ACK_enable,
  *recive
  *
  ************************************************************************/
-void I2C_set_master(uint8_t I2C_peripheral, uint8_t address_dst,
-                    bool send_recv);
+void I2C_set_master(uint8_t I2C_peripheral,
+                    bool    enable_master,
+                    uint8_t address_dst,
+                    bool    send_recv);
 
 /************************************************************************
  * @fn          - I2C_send_data
@@ -105,8 +111,9 @@ void I2C_set_master(uint8_t I2C_peripheral, uint8_t address_dst,
  * @param[in]   - total_data_send Integer with the number of data to send.
  *
  ************************************************************************/
-void I2C_send_data(uint8_t I2C_peripheral, uint8_t *data_send,
-                   uint8_t total_data_send);
+/*void I2C_send_data(uint8_t  I2C_peripheral,
+                   uint8_t *data_send,
+                   uint8_t  total_data_send);*/
 
 /************************************************************************
  * @fn          - I2C_send_data
@@ -120,8 +127,9 @@ void I2C_send_data(uint8_t I2C_peripheral, uint8_t *data_send,
  * @param[in]   - total_data_send Integer with the number of data to send.
  *
  ************************************************************************/
-void I2C_receive_data(uint8_t I2C_peripheral, uint8_t *data_recv,
-                      uint8_t total_data_recv);
+/*void I2C_receive_data(uint8_t  I2C_peripheral,
+                      uint8_t *data_recv,
+                      uint8_t  total_data_recv);*/
 
 /************************************************************************
  * @fn          - I2C_release_master
