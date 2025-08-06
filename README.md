@@ -1,2 +1,2 @@
 # STM32_drivers
-Drivers of STM32F407 learning drivers
+STM32F407's drivers developing meanwhile learning about them.
