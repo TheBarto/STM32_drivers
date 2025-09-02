@@ -170,7 +170,7 @@ void SPI_Controller_tick();
  * @param[in]   - data. Array with the data to be sent.
  * @param[in]   - total_data. Length of the data array.
  ************************************************************************/
-void SPI_load_data_send(uint8_t SPI_peripheral, uint8_t* data, uint8_t total_data);
+int8_t SPI_load_data_send(uint8_t SPI_peripheral, uint8_t* data, uint8_t total_data);
 
 /************************************************************************
  * @fn          - SPI_Send_Receive_Data
@@ -196,5 +196,8 @@ void SPI_Send_Receive_Data(uint8_t SPI_peripheral, uint8_t* data, uint8_t data_l
  * 				  a -1 if it is in use.
  ************************************************************************/
 int8_t SPI_peripheral_able(uint8_t SPI_peripheral);
+void SPI_tick();
+
+void SPI_load_data_array(uint8_t SPI_peripheral, uint8_t* array);
 
 #endif /* STM32F407XX_SPI_DRIVER_H */
